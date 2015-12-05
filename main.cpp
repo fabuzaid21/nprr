@@ -37,6 +37,7 @@ struct node {
 
 struct relation {
   set<int> attrs;
+  vector< vector<int> > tuples;
 };
 
 node * buildTree(set<int> joinAttributes, const vector<relation> & hyperedges, int k) {
@@ -168,6 +169,8 @@ vector<tuple<int, int> > computeHashKeysPerRelation(relation & r, vector<int> & 
   return toReturn;
 }
 
+void buildHashIndices(vector<tuple<int, int> > & hashKeys, vector< vector<int> > & )
+
 void testBuildTree() {
   // setup
   set<int> joinAttributes = {1, 2, 3, 4, 5, 6};
@@ -203,6 +206,11 @@ void testBuildTree() {
     std::tie(first, second) = elem;
     std::cout << "first: " << first << ", ";
     std::cout << "second: " << second << std::endl;
+  }
+
+  for (const auto& rel:hyperedges) {
+    vector<tuple<int, int> > hashKeys = computeHashKeysPerRelation(rel, totalOrder);
+    buildHashIndices(hashKeys, rel.tuples);
   }
 }
 

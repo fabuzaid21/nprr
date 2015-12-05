@@ -13,10 +13,11 @@ LINKFLAG = $(CFLAGS) $(LDFLAGS)
 
 # all: CFLAGS += $(DEBUG_FLAGS) 
 # all: LINKFLAG += $(DEBUG_FLAGS) 
-# all: $(OBJ_FILES)
 
 all:
-	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(WARNING_FLAGS) $(SRC) -o $(TARGET)
+	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(WARNING_FLAGS) $(OBJ_FILES) -o $(TARGET)
+
+all: $(OBJ_FILES)
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $< -o $@
