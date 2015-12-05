@@ -4,6 +4,9 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <glpk.h>
+#include <cmath>
+
 
 using std::map;
 using std::max;
@@ -36,6 +39,76 @@ struct relation {
     vector< set<vector<int> > > ht1;
     vector< map< vector<int>, vector<vector<int>> > > ht2; // a bunch of hashtables, each one maps a key (a tuple, vector of int) to a vector of tuples (vector of vectors of int)
 };
+
+vector<double> fractionalEdgeCover(const vector<relation> &hyperedges){
+
+    set<int> V;
+    for(const auto& e: hyperedges){
+        for(int attr : e.attrs){
+            V.insert(attr);
+        }
+    }
+
+    int rowNum = V.size();
+    int colNum = hyperedges.size();
+
+
+    glp_prob *lp = glp_create_prob();
+    glp_set_prob_name(lp, "edgecover");
+    glp_set_obj_dir(lp, GLP_MIN);
+    glp_add_rows(lp, rowNum);
+
+    for(int i = 1; i <= rowNum; i ++){
+        glp_set_row_bnds(lp, i, GLP_LO, 1.0, 0.0);
+    }
+
+    glp_add_cols(lp, colNum);
+
+
+    for(int i = 1 ; i <= colNum; i++){
+        glp_set_col_bnds(lp, i, GLP_LO, 0.0, 0.0);
+    }
+
+
+    std::vector<int> ia(1), ja(1);
+    std::vector<double> cof(1);
+
+    for(int i = 1 ;i <= colNum; i ++){
+        for(int j : hyperedges[i - 1].attrs){
+            ia.push_back(i); // row
+            ja.push_back(j); // col
+            cof.push_back(1.0); // 1.0 * X_e_j
+        }
+    }
+
+    for(int i = 1; i<= colNum; i ++){
+        glp_set_obj_coef(lp, i, log(hyperedges[i - 1].tuples.size() * 1.0));
+    }
+
+    glp_load_matrix(lp, ia.size() - 1, &ia[0], &ja[0], &cof[0]);
+
+    glp_smcp param;
+    glp_init_smcp(&param);
+    param.msg_lev = GLP_MSG_OFF;
+
+    glp_simplex(lp, &param);
+
+
+    vector<double> edgecover;
+
+    for(int i = 1 ;i <= colNum; i ++){
+        double x = glp_get_col_prim(lp, i);
+        edgecover.push_back(x);
+
+    }
+
+    double opt = glp_get_obj_val(lp);
+
+    glp_delete_prob(lp);
+
+    return edgecover;
+
+}
 
 vector<relation> readRelations(char *infile);
 
