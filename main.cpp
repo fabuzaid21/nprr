@@ -37,6 +37,8 @@ struct relation {
     vector< map< vector<int>, vector<vector<int>> > > ht2; // a bunch of hashtables, each one maps a key (a tuple, vector of int) to a vector of tuples (vector of vectors of int)
 };
 
+vector<relation> readRelations(char *infile);
+
 node *buildTree(set<int> joinAttributes, const vector<relation> &hyperedges, int k) {
     bool empty = true;
     int i = 0;
@@ -233,20 +235,10 @@ void buildHashIndices(vector<tuple<int, int> > &hashKeys, relation& rel,  const 
     }
 }
 
-void testBuildTree() {
+void testBuildTree(char *infile) {
     // setup
     set<int> joinAttributes = {1, 2, 3, 4, 5, 6};
-    relation r1;
-    r1.attrs = {1, 2, 4, 5};
-    relation r2;
-    r2.attrs = {1, 3, 4, 6};
-    relation r3;
-    r3.attrs = {1, 2, 3};
-    relation r4;
-    r4.attrs = {2, 4, 6};
-    relation r5;
-    r5.attrs = {3, 5, 6};
-    vector<relation> hyperedges = {r1, r2, r3, r4, r5};
+    vector<relation> hyperedges = readRelations(infile);
     const int k = 5;
 
     // test buildTree
@@ -262,7 +254,7 @@ void testBuildTree() {
     std::cout << std::endl;
 
     // test computeHashKeysPerRelation
-    vector<tuple<int, int> > hashKeys = computeHashKeysPerRelation(r4, totalOrder);
+    vector<tuple<int, int> > hashKeys = computeHashKeysPerRelation(hyperedges[3], totalOrder);
     for (const auto &elem:hashKeys) {
         int first, second;
         std::tie(first, second) = elem;
@@ -288,8 +280,51 @@ int countTriangles(char **argv) {
     return 1;
 }
 
+vector<relation> readRelations(char *filnam) {
+  FILE *in = fopen(filnam, "r");
+
+  vector<relation> result;
+  
+  int nRelations;
+  fscanf(in, "%d", &nRelations);
+
+  for (int i = 0; i < nRelations; i++) {
+    int nAttrs;
+    fscanf(in, "%d", &nAttrs);
+
+    set<int> attrs;
+    for (int j = 0; j < nAttrs; j++) {
+      int attr;
+      fscanf(in, "%d", &attr);
+      attrs.insert(attr);
+    }
+    
+    int nTuples;
+    fscanf(in, "%d", &nTuples);
+
+    vector< vector<int> > tuples;
+
+    for (int j = 0; j < nTuples; j++) {
+      vector<int> tuple;
+      for (int k = 0; k < nAttrs; k++) {
+        int v;
+        fscanf(in, "%d", &v);
+        tuple.push_back(v);
+      }
+      tuples.push_back(tuple);
+    }
+
+    relation rel;
+    rel.attrs = attrs;
+    rel.tuples = tuples;
+    result.push_back(rel);
+  }
+
+  return result;
+}
+
 int main(int argc, char **argv) {
-    testBuildTree();
+    testBuildTree(argv[1]);
     int count = countTriangles(argv);
     std::cout << "number of triangles: " << count << std::endl;
     return 0;
