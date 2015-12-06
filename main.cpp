@@ -423,7 +423,7 @@ vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<dou
     int smallestAttrs = setToBitVector(smallest.attrs) & setToBitVector(parentTupleAttrs);
     TUPLE r0t = projectTuple(parentTuple, setToBitVector(parentTupleAttrs), smallestAttrs, totalOrder);
     tuple<int,int> smallestLocKey = std::make_tuple(smallestAttrs, setToBitVector(u));
-    int minSize = smallest.ht2[smallest.location[smallestLocKey]][r0t].size();
+    int minSize = smallest.ht2[smallest.htIndexes[smallestLocKey]][r0t].size();
 
     for (int j = 1; j < k; j++) {
       relation r = rels[j];
@@ -431,7 +431,7 @@ vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<dou
       int rAttrs = setToBitVector(r.attrs) & setToBitVector(parentTupleAttrs);
       tuple<int,int> rLocKey = std::make_tuple(smallestAttrs, setToBitVector(u));
       TUPLE rT = projectTuple(parentTuple, setToBitVector(parentTupleAttrs), rAttrs, totalOrder);
-      const int count = r.ht2[r.location[rLocKey]][rT].size();
+      const int count = r.ht2[r.htIndexes[rLocKey]][rT].size();
 
       if (count < minSize) {
         minSize = count;
