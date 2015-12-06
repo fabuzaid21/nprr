@@ -273,37 +273,36 @@ int setToBitVector(const set<int> & s) {
   return toReturn;
 }
 
-TUPLE projectTuple(TUPLE tuple, int projectionAttrs, const vector<int>& order, const vector<int>& loc) {
-    vector<int> t;
-    for (int j = 0; j < order.size(); j++) {
-        int attr = order[j];
-        int bit = (1 << attr);
-        if ((bit & projectionAttrs) == bit) {
-            t.push_back(tuple[loc[attr]]);
-        }
+TUPLE projectTuple(TUPLE tup, int projectionAttrs, const vector<int>& order, const vector<int>& loc) {
+  vector<int> t;
+  for (int j = 0; j < order.size(); j++) {
+    int attr = order[j];
+    int bit = (1 << attr);
+    if ((bit & projectionAttrs) == bit) {
+      t.push_back(tup[loc[attr]]);
     }
+  }
 
-    return t;
+  return t;
 }
 
 vector<int> orderToLoc(const vector<int>& order, int attrs) {
-    vector<int> loc(order.size() + 1, 0);
-
-    for (int i = 0, j = 1; i < order.size(); i++) {
-        if (attrs & (1 << order[i])) {
-            loc[order[i]] = j++;
-        }
+  vector<int> loc(order.size() + 1, 0);
+  for (int i = 0, j = 1; i < order.size(); i++) {
+    if (attrs & (1 << order[i])) {
+      loc[order[i]] = j++;
     }
+  }
 
-    return loc;
+  return loc;
 }
 
-TUPLE projectTuple(TUPLE tuple, int tupleAttrs, int projectionAttrs, const vector<int>& order) {
-    vector<int> loc = orderToLoc(order, tupleAttrs);
-    return projectTuple(tuple, projectionAttrs, order, loc);
+TUPLE projectTuple(TUPLE tup, int tupleAttrs, int projectionAttrs, const vector<int> & order) {
+  vector<int> loc = orderToLoc(order, tupleAttrs);
+  return projectTuple(tup, projectionAttrs, order, loc);
 }
 
-vector<TUPLE> getOrderedProjection(relation & rel, int projectionAttrs, const vector<int>& order) {
+vector<TUPLE> getOrderedProjection(relation & rel, int projectionAttrs, const vector<int> & order) {
   vector<vector<int> > ret;
   const vector<vector<int> >& tuples = rel.tuples;
   vector<int> loc = orderToLoc(order, setToBitVector(rel.attrs));
@@ -318,8 +317,8 @@ vector<TUPLE> getOrderedProjection(relation & rel, int projectionAttrs, const ve
 int countBit(int k) {
   int ret = 0;
   while(k) {
-    k &= (k-1);
-    ret ++;
+    k &= (k - 1);
+    ret++;
   }
   return ret;
 }
@@ -385,16 +384,16 @@ double computeLeftHandSide(const int k, const TUPLE tup, vector<relation> & rels
 
 double computeRightHandSide(const TUPLE tup, relation & r,
     const int sBitVector, const int wMinusBitVector) {
-    set<int> eK = r.attrs;
-    const int eKBitVector = setToBitVector(eK);
-    const int key1 = (sBitVector & eKBitVector);
-    const int key2 = wMinusBitVector;
-    const tuple<int, int> htIndexKey = std::make_tuple(key1, key2);
+  set<int> eK = r.attrs;
+  const int eKBitVector = setToBitVector(eK);
+  const int key1 = (sBitVector & eKBitVector);
+  const int key2 = wMinusBitVector;
+  const tuple<int, int> htIndexKey = std::make_tuple(key1, key2);
 
-    const int ht2Location = r.htIndexes[htIndexKey];
-    map<TUPLE, vector<TUPLE> > tupleMap = r.ht2[ht2Location];
-    const double numTuples = tupleMap.count(tup) ? tupleMap[tup].size() : 0.0;
-    return numTuples;
+  const int ht2Location = r.htIndexes[htIndexKey];
+  map<TUPLE, vector<TUPLE> > tupleMap = r.ht2[ht2Location];
+  const double numTuples = tupleMap.count(tup) ? tupleMap[tup].size() : 0.0;
+  return numTuples;
 }
 
 vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<double> & fractionalCover,
