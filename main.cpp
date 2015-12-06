@@ -273,28 +273,44 @@ int setToBitVector(const set<int> & s) {
   return toReturn;
 }
 
-vector<TUPLE> getOrderedProjection(relation & rel, int projectionAttrs,
-    const vector<int>& order) {
+TUPLE projectTuple(TUPLE tuple, int projectionAttrs, const vector<int>& order, const vector<int>& loc) {
+    vector<int> t;
+    for (int j = 0; j < order.size(); j++) {
+        int attr = order[j];
+        int bit = (1 << attr);
+        if ((bit & projectionAttrs) == bit) {
+            t.push_back(tuple[loc[attr]]);
+        }
+    }
+
+    return t;
+}
+
+vector<int> orderToLoc(const vector<int>& order, int attrs) {
+    vector<int> loc(order.size() + 1, 0);
+
+    for (int i = 0, j = 1; i < order.size(); i++) {
+        if (attrs & (1 << order[i])) {
+            loc[order[i]] = j++;
+        }
+    }
+
+    return loc;
+}
+
+TUPLE projectTuple(TUPLE tuple, int tupleAttrs, int projectionAttrs, const vector<int>& order) {
+    vector<int> loc = orderToLoc(order, tupleAttrs);
+    return projectTuple(tuple, projectionAttrs, order, loc);
+}
+
+vector<TUPLE> getOrderedProjection(relation & rel, int projectionAttrs, const vector<int>& order) {
   vector<vector<int> > ret;
   const vector<vector<int> >& tuples = rel.tuples;
-  vector<int> loc(order.size() + 1, 0);
-  for (int i = 0, j = 1; i < order.size(); i++) {
-    if (rel.attrs.count(order[i])) {
-      loc[order[i]] = j++;
-    }
-  }
+  vector<int> loc = orderToLoc(order, setToBitVector(rel.attrs));
 
   for (int i = 0; i < tuples.size(); i ++) {
     auto tuple = tuples[i];
-    vector<int> t;
-    for (int j = 0; j < order.size(); j ++) {
-      int attr = order[j];
-      int bit = (1 << attr);
-      if ((bit & projectionAttrs) == bit) {
-        t.push_back(tuple[loc[attr]]);
-      }
-    }
-    ret.push_back(t);
+    ret.push_back(projectTuple(tuple, projectionAttrs, order, loc));
   }
   return ret;
 }
