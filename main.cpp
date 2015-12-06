@@ -24,20 +24,20 @@ using std::tuple;
 #define ERROR(str) do { printf("Error: %s", (str)); } while (false);
 
 struct node {
-    set<int> universe;
-    int label;
-    node *leftChild;
-    node *rightChild;
+  set<int> universe;
+  int label;
+  node *leftChild;
+  node *rightChild;
 
-    node(const set<int> &_universe, int _label) {
-        universe = _universe;
-        label = _label;
-        leftChild = rightChild = NULL;
-    }
+  node(const set<int> &_universe, int _label) {
+    universe = _universe;
+    label = _label;
+    leftChild = rightChild = NULL;
+  }
 
-    bool isLeaf() {
-        return leftChild == NULL && rightChild == NULL;
-    }
+  bool isLeaf() {
+    return leftChild == NULL && rightChild == NULL;
+  }
 };
 
 typedef vector<int> TUPLE;
@@ -121,8 +121,8 @@ vector<int> mergeTuples(vector<int> t1, set<int> attrs1, vector<int> t2, set<int
 vector<double> fractionalEdgeCover(const vector<relation> &hyperedges) {
 
     set<int> V;
-    for(const auto& e: hyperedges){
-        for(int attr : e.attrs){
+    for (const auto& e: hyperedges) {
+        for (int attr : e.attrs) {
             V.insert(attr);
         }
     }
@@ -136,14 +136,14 @@ vector<double> fractionalEdgeCover(const vector<relation> &hyperedges) {
     glp_set_obj_dir(lp, GLP_MIN);
     glp_add_rows(lp, rowNum);
 
-    for(int i = 1; i <= rowNum; i ++){
+    for (int i = 1; i <= rowNum; i ++) {
         glp_set_row_bnds(lp, i, GLP_LO, 1.0, 0.0);
     }
 
     glp_add_cols(lp, colNum);
 
 
-    for(int i = 1 ; i <= colNum; i++){
+    for (int i = 1 ; i <= colNum; i++) {
         glp_set_col_bnds(lp, i, GLP_LO, 0.0, 0.0);
     }
 
@@ -151,15 +151,15 @@ vector<double> fractionalEdgeCover(const vector<relation> &hyperedges) {
     std::vector<int> ia(1), ja(1);
     std::vector<double> cof(1);
 
-    for(int i = 1 ;i <= colNum; i ++){
-        for(int j : hyperedges[i - 1].attrs){
+    for (int i = 1 ;i <= colNum; i ++) {
+        for (int j : hyperedges[i - 1].attrs) {
             ia.push_back(i); // row
             ja.push_back(j); // col
             cof.push_back(1.0); // 1.0 * X_e_j
         }
     }
 
-    for(int i = 1; i<= colNum; i ++){
+    for (int i = 1; i<= colNum; i ++) {
         glp_set_obj_coef(lp, i, log(hyperedges[i - 1].tuples.size() * 1.0));
     }
 
@@ -174,7 +174,7 @@ vector<double> fractionalEdgeCover(const vector<relation> &hyperedges) {
 
     vector<double> edgecover;
 
-    for(int i = 1 ;i <= colNum; i ++){
+    for (int i = 1 ;i <= colNum; i ++) {
         double x = glp_get_col_prim(lp, i);
         edgecover.push_back(x);
 
@@ -231,6 +231,7 @@ node * buildTree(const set<int> & joinAttributes, const vector<relation> & hyper
             std::inserter(s_2, s_2.begin()));
         currNode->leftChild = buildTree(s_1, hyperedges, k - 1);
         currNode->rightChild = buildTree(s_2, hyperedges, k - 1);
+        break;
       }
       ++i;
     }
@@ -298,39 +299,38 @@ vector<tuple<int, int> > computeHashKeysPerRelation(relation &r, vector<int> &to
     }
   }
   // orderedAttrs = {4, 2, 6}
-  unsigned int first = (1 << orderedAttrs[0]);
-  for (int i = 1; i < orderedAttrs.size(); ++i) {
+  // unsigned int first = (1 << orderedAttrs[0]);
+  unsigned int first = 0;
+  for (int i = 0; i < orderedAttrs.size(); ++i) {
     unsigned int second = 0;
     for (int j = i; j < orderedAttrs.size(); ++j) {
       second |= (1 << orderedAttrs[j]);
-      if (second == 0) {
-        std::cout << "AHA!" << std::endl;
-      }
       tuple<int, int> key = std::make_tuple(first, second);
       toReturn.push_back(key);
     }
     first |= (1 << orderedAttrs[i]);
   }
+  tuple<int, int> key = std::make_tuple(first, 0);
+  toReturn.push_back(key);
   return toReturn;
 }
 
-
-vector<vector<int> > getProjection(relation & rel, int projectionAttrs,
-    const vector<int>& totalOrder) {
+vector<TUPLE> getOrderedProjection(relation & rel, int projectionAttrs,
+    const vector<int>& order) {
   vector< vector<int> > ret;
   const vector<vector<int> >& tuples = rel.tuples;
-  vector<int> loc(totalOrder.size() + 1, 0);
-  for (int i = 0, j = 0 ;i < totalOrder.size(); i ++) {
-    if (rel.attrs.count(totalOrder[i])) {
-      loc[totalOrder[i]] = j++;
+  vector<int> loc(order.size() + 1, 0);
+  for (int i = 0, j = 0; i < order.size(); i ++) {
+    if (rel.attrs.count(order[i])) {
+      loc[order[i]] = j++;
     }
   }
 
   for (int i = 0; i< tuples.size(); i ++) {
     auto tuple = tuples[i];
     vector<int> t;
-    for (int j = 0; j < totalOrder.size(); j ++) {
-      int attr = totalOrder[j];
+    for (int j = 0; j < order.size(); j ++) {
+      int attr = order[j];
       int bit = (1 << attr);
       if ((bit & projectionAttrs) == bit) {
         t.push_back(tuple[loc[attr]]);
@@ -361,8 +361,8 @@ void buildHashIndices(vector<tuple<int, int> > & hashKeys, relation & rel,
     int K = std::get<0>(key);
     int A = std::get<1>(key);
 
-    vector<TUPLE> projectionOnKA = getProjection(rel, K | A, totalOrder);
-    vector<TUPLE> projectionOnK = getProjection(rel, K, totalOrder);
+    vector<TUPLE> projectionOnKA = getOrderedProjection(rel, K | A, totalOrder);
+    vector<TUPLE> projectionOnK = getOrderedProjection(rel, K, totalOrder);
 
     set<TUPLE> ht1;
     map<vector<int>, vector<TUPLE> > ht2;
@@ -389,44 +389,63 @@ void printVector(const string & label, const vector<int> & vec) {
   std::cout << std::endl;
 }
 
-vector<vector<int> > recursiveJoin(vector<relation> &rels, node &currNode, vector<double> &fractionalCover,
-                                   vector<int> parentTuple, set<int> &prevAttrs) {
+vector<TUPLE> recursiveJoin(vector<relation> &rels, node & currNode, vector<double> &fractionalCover,
+                            const vector<int>& totalOrder, vector<int> parentTuple, set<int> &prevAttrs) {
     // 1: Let U = univ(u), k = label(u)
-    set<int> &u = currNode.universe;
+    set<int> & u = currNode.universe;
+    const int k = currNode.label;
 
     //2: Ret ← ∅ // Ret is the returned tuple set
-    vector<vector<int> > ret;
+    vector<TUPLE> ret;
 
     // 3: if u is a leaf node of T then // note that U ⊆ ei, ∀i ≤ k
     if (currNode.isLeaf()) {
         // Pseudocode line 4: find smallest relation <k when sectioned on parentTuple
+      std::cout << "size of universe: " << u.size() << std::endl;
 
-        int minSize = -1;
+        int universeBitVector = 0;
+        for (const auto & elem : u) {
+          universeBitVector |= (1 << elem);
+        }
 
-        relation &smallest = rels[0];
+        int smallRelIndex = 0;
+        relation &smallest = rels[smallRelIndex];
+        vector<TUPLE> projectionOnUniverseAttrs = getOrderedProjection(smallest, universeBitVector, totalOrder);
+        int minSize = projectionOnUniverseAttrs.size();
 
-        for (int j = 0; j < currNode.label; j++) {
-            int count = 0;
-            for (vector<int> t : rels[j].tuples) {
-                if (tuplesMatch(t, rels[j].attrs, parentTuple, prevAttrs)) {
-                    count++;
-                }
-            }
+        for (int j = 1; j < currNode.label; j++) {
+          relation r = rels[j];
+          vector<TUPLE> projectionOnUniverseAttrs = getOrderedProjection(smallest, universeBitVector, totalOrder);
+          const int count = projectionOnUniverseAttrs.size();
 
-            if (minSize == -1 || count < minSize) {
-                minSize = count;
-                smallest = rels[j];
-            }
+          if (count < minSize) {
+            minSize = count;
+            smallRelIndex = j;
+            smallest = rels[j];
+          }
         }
 
         // Pseudocode lines 6-8
-        for (vector<int> t : smallest.tuples) {
-            if (tuplesMatch(t, smallest.attrs, parentTuple, prevAttrs)) {
-
+        for (TUPLE t : smallest.tuples) {
+          bool addTuple = true;
+          for (int j = 0; j < currNode.label; ++j) {
+            if (j == smallRelIndex) {
+              continue;
             }
+            tuple<int, int> key = std::make_tuple(0, universeBitVector);
+            const int ht2Index = rels[j].location[key];
+            map<TUPLE, vector<TUPLE> > & tupleMap = rels[j].ht2[ht2Index];
+            if (!tupleMap.count(t)) {
+              addTuple = false;
+              break;
+            }
+          }
+          if (addTuple) {
+            ret.push_back(t);
+          }
         }
-
     }
+    return ret;
 }
 
 void testBuildTree(const set<int> & joinAttributes, vector<relation> & hyperedges) {
@@ -446,7 +465,7 @@ void testBuildTree(const set<int> & joinAttributes, vector<relation> & hyperedge
     std::cout << "first: " << first << ", ";
     std::cout << "second: " << second << std::endl;
   }
-  
+
   std::cout << std::endl << "TESTING INDICES" << std::endl << std::endl;
   for (auto & rel : hyperedges) {
     vector<tuple<int, int> > hashKeys = computeHashKeysPerRelation(rel, totalOrder);
@@ -470,7 +489,7 @@ void testBuildTree(const set<int> & joinAttributes, vector<relation> & hyperedge
         vector<TUPLE> tuples = keyValuePair.second;
         std::cout << "maps to: " << std::endl;
         for (const auto & tup : tuples) {
-          printVector("h2", tup);
+          printVector("ht2", tup);
         }
       }
     }
@@ -525,7 +544,14 @@ int countTriangles(char **argv) {
     }
   }
   testBuildTree(joinAttributes, relations);
-  return 1;
+  node * const root = buildTree(joinAttributes, relations, relations.size());
+  vector<double> fractionalCover = fractionalEdgeCover(relations);
+  vector<int> emptyVector;
+  set<int> emptySet;
+  vector<int> totalOrder = computeTotalOrder(root);
+  vector<TUPLE> results = recursiveJoin(relations, *root, fractionalCover,
+                                        totalOrder, emptyVector, emptySet);
+  return results.size();
 }
 
 vector<relation> readRelations(char *filnam) {

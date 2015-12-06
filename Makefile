@@ -19,7 +19,7 @@ all:
 all: $(OBJ_FILES)
 
 %.o: %.cpp
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(DEBUG_FLAGS) -c $< -o $@
 
 clean:
 	rm -f $(TARGET)
