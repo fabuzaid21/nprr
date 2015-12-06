@@ -8,7 +8,7 @@
 #include <vector>
 #include <glpk.h>
 #include <cmath>
-
+#include <cassert>
 
 using std::map;
 using std::max;
@@ -53,135 +53,90 @@ struct relation {
   vector<map<TUPLE, vector<TUPLE> > > ht2;
 };
 
-set<int> intersect(set<int> &left, set<int> &right) {
-    set<int> result;
-    std::set_intersection(left.begin(), left.end(),
-                          right.begin(), right.end(),
-                          std::inserter(result, result.begin()));
-    return result;
+set<int> set_union(const set<int> & left, const set<int> & right) {
+  set<int> result;
+  std::set_union(left.begin(), left.end(),
+      right.begin(), right.end(),
+      std::inserter(result, result.begin()));
+  return result;
 }
 
-bool tuplesMatch(vector<int> t1, set<int> attrs1, vector<int> t2, set<int> attrs2) {
-    auto it1 = attrs1.begin();
-    int i1 = 0;
-    auto it2 = attrs2.begin();
-    int i2 = 0;
-
-    while (it1 != attrs1.end() && it2 != attrs2.end()) {
-        if (*it1 < *it2) {
-            it1++;
-            i1++;
-        } else if (*it2 < *it1) {
-            it2++;
-            i2++;
-        } else {
-            if (t1[i1] != t2[i2]) {
-                return false;
-            }
-
-            it1++;
-            i1++;
-            it2++;
-            i2++;
-        }
-    }
-
-    return true;
+set<int> difference(const set<int> & left, const set<int> & right) {
+  set<int> result;
+  std::set_difference(left.begin(), left.end(),
+      right.begin(), right.end(),
+      std::inserter(result, result.begin()));
+  return result;
 }
 
-// Assumes attrs1, attrs2 disjoint
-vector<int> mergeTuples(vector<int> t1, set<int> attrs1, vector<int> t2, set<int> attrs2) {
-    vector<int> result;
-
-    auto it1 = attrs1.begin();
-    int i1 = 0;
-    auto it2 = attrs2.begin();
-    int i2 = 0;
-
-    while (it1 != attrs1.end() && it2 != attrs2.end()) {
-        if (*it1 < *it2) {
-            result.push_back(t1[i1]);
-
-            it1++;
-            i1++;
-        } else if (*it2 < *it1) {
-            result.push_back(t2[i2]);
-
-            it2++;
-            i2++;
-        } else {
-            ERROR("Merging tuples with non-empty intersection");
-            exit(1);
-        }
-    }
-
-    return result;
+set<int> intersect(const set<int> & left, const set<int> & right) {
+  set<int> result;
+  std::set_intersection(left.begin(), left.end(),
+      right.begin(), right.end(),
+      std::inserter(result, result.begin()));
+  return result;
 }
 
 vector<double> fractionalEdgeCover(const vector<relation> &hyperedges) {
-
-    set<int> V;
-    for (const auto& e: hyperedges) {
-        for (int attr : e.attrs) {
-            V.insert(attr);
-        }
+  set<int> V;
+  for (const auto& e: hyperedges) {
+    for (int attr : e.attrs) {
+      V.insert(attr);
     }
+  }
 
-    int rowNum = V.size();
-    int colNum = hyperedges.size();
+  int rowNum = V.size();
+  int colNum = hyperedges.size();
 
+  glp_prob *lp = glp_create_prob();
+  glp_set_prob_name(lp, "edgecover");
+  glp_set_obj_dir(lp, GLP_MIN);
+  glp_add_rows(lp, rowNum);
 
-    glp_prob *lp = glp_create_prob();
-    glp_set_prob_name(lp, "edgecover");
-    glp_set_obj_dir(lp, GLP_MIN);
-    glp_add_rows(lp, rowNum);
+  for (int i = 1; i <= rowNum; i ++) {
+    glp_set_row_bnds(lp, i, GLP_LO, 1.0, 0.0);
+  }
 
-    for (int i = 1; i <= rowNum; i ++) {
-        glp_set_row_bnds(lp, i, GLP_LO, 1.0, 0.0);
+  glp_add_cols(lp, colNum);
+
+  for (int i = 1 ; i <= colNum; i++) {
+    glp_set_col_bnds(lp, i, GLP_LO, 0.0, 0.0);
+  }
+
+  std::vector<int> ia(1), ja(1);
+  std::vector<double> cof(1);
+
+  for (int i = 1 ;i <= colNum; i ++) {
+    for (int j : hyperedges[i - 1].attrs) {
+      ia.push_back(i); // row
+      ja.push_back(j); // col
+      cof.push_back(1.0); // 1.0 * X_e_j
     }
+  }
 
-    glp_add_cols(lp, colNum);
+  for (int i = 1; i<= colNum; i ++) {
+    glp_set_obj_coef(lp, i, log(hyperedges[i - 1].tuples.size() * 1.0));
+  }
 
+  glp_load_matrix(lp, ia.size() - 1, &ia[0], &ja[0], &cof[0]);
 
-    for (int i = 1 ; i <= colNum; i++) {
-        glp_set_col_bnds(lp, i, GLP_LO, 0.0, 0.0);
-    }
+  glp_smcp param;
+  glp_init_smcp(&param);
+  param.msg_lev = GLP_MSG_OFF;
 
-
-    std::vector<int> ia(1), ja(1);
-    std::vector<double> cof(1);
-
-    for (int i = 1 ;i <= colNum; i ++) {
-        for (int j : hyperedges[i - 1].attrs) {
-            ia.push_back(i); // row
-            ja.push_back(j); // col
-            cof.push_back(1.0); // 1.0 * X_e_j
-        }
-    }
-
-    for (int i = 1; i<= colNum; i ++) {
-        glp_set_obj_coef(lp, i, log(hyperedges[i - 1].tuples.size() * 1.0));
-    }
-
-    glp_load_matrix(lp, ia.size() - 1, &ia[0], &ja[0], &cof[0]);
-
-    glp_smcp param;
-    glp_init_smcp(&param);
-    param.msg_lev = GLP_MSG_OFF;
-
-    glp_simplex(lp, &param);
+  glp_simplex(lp, &param);
 
 
-    vector<double> edgecover;
+  vector<double> edgecover;
 
-    for (int i = 1 ;i <= colNum; i ++) {
-        double x = glp_get_col_prim(lp, i);
-        edgecover.push_back(x);
+  for (int i = 1 ;i <= colNum; i ++) {
+    double x = glp_get_col_prim(lp, i);
+    edgecover.push_back(x);
 
-    }
+  }
 
-    glp_delete_prob(lp);
-    return edgecover;
+  glp_delete_prob(lp);
+  return edgecover;
 }
 
 node * buildTree(const set<int> & joinAttributes, const vector<relation> & hyperedges, int k) {
@@ -191,10 +146,7 @@ node * buildTree(const set<int> & joinAttributes, const vector<relation> & hyper
     if (i == k) {
       break;
     }
-    std::set<int> s_intersection;
-    std::set_intersection(r.attrs.begin(), r.attrs.end(),
-        joinAttributes.begin(), joinAttributes.end(),
-        std::inserter(s_intersection, s_intersection.begin()));
+    set<int> s_intersection = intersect(r.attrs, joinAttributes);
     if (s_intersection.size() > 0) {
       empty = false;
       break;
@@ -218,17 +170,15 @@ node * buildTree(const set<int> & joinAttributes, const vector<relation> & hyper
       if (!std::includes(r.attrs.begin(), r.attrs.end(),
             joinAttributes.begin(), joinAttributes.end())) {
         auto e_k = hyperedges[k - 1].attrs;
-        std::set<int> s_1 = joinAttributes;
-        std::set<int> s_2;
+        std::set<int> s_1 = difference(joinAttributes, e_k);
+        std::set<int> s_2 = intersect(joinAttributes, e_k);
+        // std::set<int> s_1 = joinAttributes;
 
-        for (auto attr: e_k) {
-          if (s_1.count(attr)) {
-            s_1.erase(s_1.find(attr));
-          }
-        }
-        std::set_intersection(e_k.begin(), e_k.end(),
-            joinAttributes.begin(), joinAttributes.end(),
-            std::inserter(s_2, s_2.begin()));
+        // for (auto attr: e_k) {
+        //   if (s_1.count(attr)) {
+        //     s_1.erase(s_1.find(attr));
+        //   }
+        // }
         currNode->leftChild = buildTree(s_1, hyperedges, k - 1);
         currNode->rightChild = buildTree(s_2, hyperedges, k - 1);
         break;
@@ -280,7 +230,7 @@ void printQueryPlanTree(node *currNode) {
   printQueryPlanTree(currNode->leftChild);
   std::cout << "Label: " << currNode->label << std::endl;
   std::cout << "Universe: ";
-  for (const auto &attr: currNode->universe) {
+  for (const auto & attr: currNode->universe) {
     std::cout << attr << " ";
   }
   std::cout << std::endl;
@@ -293,7 +243,7 @@ void printQueryPlanTree(node *currNode) {
 vector<tuple<int, int> > computeHashKeysPerRelation(relation &r, vector<int> &totalOrder) {
   vector<tuple<int, int> > toReturn;
   vector<int> orderedAttrs;
-  for (const auto &elem:totalOrder) {
+  for (const auto & elem : totalOrder) {
     if (r.attrs.count(elem)) {
       orderedAttrs.push_back(elem);
     }
@@ -315,18 +265,26 @@ vector<tuple<int, int> > computeHashKeysPerRelation(relation &r, vector<int> &to
   return toReturn;
 }
 
+int setToBitVector(const set<int> & s) {
+  int toReturn = 0;
+  for (const auto & attr : s) {
+    toReturn |= (1 << attr);
+  }
+  return toReturn;
+}
+
 vector<TUPLE> getOrderedProjection(relation & rel, int projectionAttrs,
     const vector<int>& order) {
-  vector< vector<int> > ret;
+  vector<vector<int> > ret;
   const vector<vector<int> >& tuples = rel.tuples;
   vector<int> loc(order.size() + 1, 0);
-  for (int i = 0, j = 0; i < order.size(); i ++) {
+  for (int i = 0, j = 1; i < order.size(); i++) {
     if (rel.attrs.count(order[i])) {
       loc[order[i]] = j++;
     }
   }
 
-  for (int i = 0; i< tuples.size(); i ++) {
+  for (int i = 0; i < tuples.size(); i ++) {
     auto tuple = tuples[i];
     vector<int> t;
     for (int j = 0; j < order.size(); j ++) {
@@ -389,63 +347,100 @@ void printVector(const string & label, const vector<int> & vec) {
   std::cout << std::endl;
 }
 
-vector<TUPLE> recursiveJoin(vector<relation> &rels, node & currNode, vector<double> &fractionalCover,
-                            const vector<int>& totalOrder, vector<int> parentTuple, set<int> &prevAttrs) {
-    // 1: Let U = univ(u), k = label(u)
-    set<int> & u = currNode.universe;
-    const int k = currNode.label;
+vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<double> & fractionalCover,
+    const vector<int> & totalOrder, TUPLE parentTuple, set<int> & parentTupleAttrs) {
+  // 1: Let U = univ(u), k = label(u)
+  set<int> & u = currNode->universe;
+  const int k = currNode->label;
 
-    //2: Ret ← ∅ // Ret is the returned tuple set
-    vector<TUPLE> ret;
+  // 2: Ret ← ∅
+  // Ret is the returned tuple set
+  vector<TUPLE> ret;
 
-    // 3: if u is a leaf node of T then // note that U ⊆ ei, ∀i ≤ k
-    if (currNode.isLeaf()) {
-        // Pseudocode line 4: find smallest relation <k when sectioned on parentTuple
-      std::cout << "size of universe: " << u.size() << std::endl;
+  // 3: if u is a leaf node of T then
+  // note that U ⊆ ei, ∀i ≤ k
+  if (currNode->isLeaf()) {
+    // Pseudocode line 4: find smallest relation <k when sectioned on parentTuple
+    assert(u.size() == 1);
 
-        int universeBitVector = 0;
-        for (const auto & elem : u) {
-          universeBitVector |= (1 << elem);
+    int universeBitVector = setToBitVector(u);
+    // for (const auto & elem : u) {
+    //   universeBitVector |= (1 << elem);
+    // }
+
+    // find smallest relation
+    int smallRelIndex = 0;
+    relation &smallest = rels[smallRelIndex];
+    vector<TUPLE> projectionOnUniverseAttrs = getOrderedProjection(smallest, universeBitVector, totalOrder);
+    int minSize = projectionOnUniverseAttrs.size();
+
+    for (int j = 1; j < k; j++) {
+      relation r = rels[j];
+      vector<TUPLE> projectionOnUniverseAttrs = getOrderedProjection(smallest, universeBitVector, totalOrder);
+      const int count = projectionOnUniverseAttrs.size();
+
+      if (count < minSize) {
+        minSize = count;
+        smallRelIndex = j;
+        smallest = rels[j];
+      }
+    }
+
+    // Pseudocode lines 6-8
+    for (TUPLE t : smallest.tuples) {
+      bool addTuple = true;
+      for (int j = 0; j < k; ++j) {
+        if (j == smallRelIndex) {
+          continue;
         }
-
-        int smallRelIndex = 0;
-        relation &smallest = rels[smallRelIndex];
-        vector<TUPLE> projectionOnUniverseAttrs = getOrderedProjection(smallest, universeBitVector, totalOrder);
-        int minSize = projectionOnUniverseAttrs.size();
-
-        for (int j = 1; j < currNode.label; j++) {
-          relation r = rels[j];
-          vector<TUPLE> projectionOnUniverseAttrs = getOrderedProjection(smallest, universeBitVector, totalOrder);
-          const int count = projectionOnUniverseAttrs.size();
-
-          if (count < minSize) {
-            minSize = count;
-            smallRelIndex = j;
-            smallest = rels[j];
-          }
+        tuple<int, int> key = std::make_tuple(0, universeBitVector);
+        const int ht2Index = rels[j].location[key];
+        map<TUPLE, vector<TUPLE> > & tupleMap = rels[j].ht2[ht2Index];
+        if (!tupleMap.count(t)) {
+          addTuple = false;
+          break;
         }
-
-        // Pseudocode lines 6-8
-        for (TUPLE t : smallest.tuples) {
-          bool addTuple = true;
-          for (int j = 0; j < currNode.label; ++j) {
-            if (j == smallRelIndex) {
-              continue;
-            }
-            tuple<int, int> key = std::make_tuple(0, universeBitVector);
-            const int ht2Index = rels[j].location[key];
-            map<TUPLE, vector<TUPLE> > & tupleMap = rels[j].ht2[ht2Index];
-            if (!tupleMap.count(t)) {
-              addTuple = false;
-              break;
-            }
-          }
-          if (addTuple) {
-            ret.push_back(t);
-          }
-        }
+      }
+      if (addTuple) {
+        ret.push_back(t);
+      }
     }
     return ret;
+  }
+  vector<TUPLE> leftChildTuples;
+  if (currNode->leftChild == NULL) {
+    leftChildTuples.push_back(parentTuple);
+  } else {
+    vector<double> newFracCover = vector<double>(fractionalCover.begin(), fractionalCover.end() - 1);
+    leftChildTuples = recursiveJoin(rels, currNode->leftChild, newFracCover, totalOrder, parentTuple, parentTupleAttrs);
+  }
+  set<int> w = difference(u, rels[k - 1].attrs);
+  int wBitVector = setToBitVector(w);
+  set<int> wMinus = intersect(u, rels[k - 1].attrs);
+  int wMinusBitVector = setToBitVector(wMinus);
+  if (wMinus.size() == 0) {
+    return leftChildTuples;
+  }
+
+  int sBitVector = setToBitVector(parentTupleAttrs);
+  // int sAndWBitVector = setToBitVector(sAndW);
+  for (const auto & tuple : leftChildTuples) {
+    const double y_e_k = fractionalCover.back();
+    for (int i = 0; i < k - 1; ++i) {
+      relation r = rels[i];
+      set<int> eI = r.attrs;
+      int eIBitVector = setToBitVector(eI);
+      // set<int> s_w_ei = intersect(sAndW, eI);
+      int key1 = (sBitVector | wBitVector) & eIBitVector;
+      int key2 = (eIBitVector & wMinusBitVector);
+
+
+    }
+    // if (y_e_k < 1 &&
+    //     )
+
+  }
+  return ret;
 }
 
 void testBuildTree(const set<int> & joinAttributes, vector<relation> & hyperedges) {
@@ -459,7 +454,7 @@ void testBuildTree(const set<int> & joinAttributes, vector<relation> & hyperedge
 
   // test computeHashKeysPerRelation
   vector<tuple<int, int> > hashKeys = computeHashKeysPerRelation(hyperedges[0], totalOrder);
-  for (const auto &elem:hashKeys) {
+  for (const auto & elem : hashKeys) {
     int first, second;
     std::tie(first, second) = elem;
     std::cout << "first: " << first << ", ";
@@ -546,11 +541,11 @@ int countTriangles(char **argv) {
   testBuildTree(joinAttributes, relations);
   node * const root = buildTree(joinAttributes, relations, relations.size());
   vector<double> fractionalCover = fractionalEdgeCover(relations);
-  vector<int> emptyVector;
+  TUPLE emptyTuple;
   set<int> emptySet;
   vector<int> totalOrder = computeTotalOrder(root);
-  vector<TUPLE> results = recursiveJoin(relations, *root, fractionalCover,
-                                        totalOrder, emptyVector, emptySet);
+  vector<TUPLE> results = recursiveJoin(relations, root, fractionalCover,
+      totalOrder, emptyTuple, emptySet);
   return results.size();
 }
 
