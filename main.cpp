@@ -45,7 +45,7 @@ typedef vector<int> TUPLE;
 struct relation {
   set<int> attrs;
   vector<TUPLE> tuples;
-  map<tuple<int, int>, int> location;
+  map<tuple<int, int>, int> htIndexes;
   vector<set<TUPLE> > ht1;
   // a bunch of hashtables, each one maps a key
   // (a tuple, vector of int) to a vector of tuples
@@ -326,7 +326,7 @@ int countBit(int k) {
 
 void buildHashIndices(vector<tuple<int, int> > & hashKeys, relation & rel,
     const vector<int> & totalOrder) {
-  map<tuple<int, int>, int> & location = rel.location;
+  map<tuple<int, int>, int> & location = rel.htIndexes;
 
   for (const auto & key: hashKeys) {
     int size = location.size();
@@ -361,6 +361,40 @@ void printVector(const string & label, const vector<int> & vec) {
     std::cout << elem << " ";
   }
   std::cout << std::endl;
+}
+
+double computeLeftHandSide(const int k, const TUPLE tup, vector<relation> & rels,
+    const int sBitVector, const int wBitVector, const int wMinusBitVector, const double y_e_k,
+    const vector<double> & fractionalCover) {
+  double sum = 0.0;
+  for (int i = 0; i < k - 1; ++i) {
+    relation & r = rels[i];
+    set<int> eI = r.attrs;
+    const int eIBitVector = setToBitVector(eI);
+    const int key1 = (sBitVector | wBitVector) & eIBitVector;
+    const int key2 = (eIBitVector & wMinusBitVector);
+    const tuple<int, int> htIndexKey = std::make_tuple(key1, key2);
+
+    const int ht2Location = r.htIndexes[htIndexKey];
+    map<TUPLE, vector<TUPLE> > tupleMap = r.ht2[ht2Location];
+    const double numTuples = tupleMap.count(tup) ? tupleMap[tup].size() : 0.0;
+    sum += (fractionalCover[i] / (1 - y_e_k)) * log(numTuples);
+  }
+  return sum;
+}
+
+double computeRightHandSide(const TUPLE tup, relation & r,
+    const int sBitVector, const int wMinusBitVector) {
+    set<int> eK = r.attrs;
+    const int eKBitVector = setToBitVector(eK);
+    const int key1 = (sBitVector & eKBitVector);
+    const int key2 = wMinusBitVector;
+    const tuple<int, int> htIndexKey = std::make_tuple(key1, key2);
+
+    const int ht2Location = r.htIndexes[htIndexKey];
+    map<TUPLE, vector<TUPLE> > tupleMap = r.ht2[ht2Location];
+    const double numTuples = tupleMap.count(tup) ? tupleMap[tup].size() : 0.0;
+    return numTuples;
 }
 
 vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<double> & fractionalCover,
@@ -415,7 +449,7 @@ vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<dou
           continue;
         }
         tuple<int, int> key = std::make_tuple(0, universeBitVector);
-        const int ht2Index = rels[j].location[key];
+        const int ht2Index = rels[j].htIndexes[key];
         map<TUPLE, vector<TUPLE> > & tupleMap = rels[j].ht2[ht2Index];
         if (!tupleMap.count(t)) {
           addTuple = false;
@@ -428,6 +462,7 @@ vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<dou
     }
     return ret;
   }
+  // Pseudocode lines 10-14
   vector<TUPLE> leftChildTuples;
   if (currNode->leftChild == NULL) {
     leftChildTuples.push_back(parentTuple);
@@ -435,31 +470,28 @@ vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<dou
     vector<double> newFracCover = vector<double>(fractionalCover.begin(), fractionalCover.end() - 1);
     leftChildTuples = recursiveJoin(rels, currNode->leftChild, newFracCover, totalOrder, parentTuple, parentTupleAttrs);
   }
+
+  // Pseudocode lines 15-17
+  const int sBitVector = setToBitVector(parentTupleAttrs);
   set<int> w = difference(u, rels[k - 1].attrs);
-  int wBitVector = setToBitVector(w);
+  const int wBitVector = setToBitVector(w);
   set<int> wMinus = intersect(u, rels[k - 1].attrs);
-  int wMinusBitVector = setToBitVector(wMinus);
+  const int wMinusBitVector = setToBitVector(wMinus);
   if (wMinus.size() == 0) {
     return leftChildTuples;
   }
 
-  int sBitVector = setToBitVector(parentTupleAttrs);
-  // int sAndWBitVector = setToBitVector(sAndW);
-  for (const auto & tuple : leftChildTuples) {
+  // Pseudocode lines 18-30
+  for (const auto & tup : leftChildTuples) {
     const double y_e_k = fractionalCover.back();
-    for (int i = 0; i < k - 1; ++i) {
-      relation r = rels[i];
-      set<int> eI = r.attrs;
-      int eIBitVector = setToBitVector(eI);
-      // set<int> s_w_ei = intersect(sAndW, eI);
-      int key1 = (sBitVector | wBitVector) & eIBitVector;
-      int key2 = (eIBitVector & wMinusBitVector);
+    const double lhs = computeLeftHandSide(k, tup, rels, sBitVector, wBitVector,
+        wMinusBitVector, y_e_k, fractionalCover);
+    const double rhs = computeRightHandSide(tup, rels[k - 1], sBitVector, wMinusBitVector);
+    if (y_e_k < 1 && lhs < rhs) {
 
+    } else {
 
     }
-    // if (y_e_k < 1 &&
-    //     )
-
   }
   return ret;
 }
@@ -486,7 +518,7 @@ void testBuildTree(const set<int> & joinAttributes, vector<relation> & hyperedge
   for (auto & rel : hyperedges) {
     vector<tuple<int, int> > hashKeys = computeHashKeysPerRelation(rel, totalOrder);
     buildHashIndices(hashKeys, rel, totalOrder);
-    for (auto const & keyValuePair : rel.location) {
+    for (auto const & keyValuePair : rel.htIndexes) {
       tuple<int, int> kAndA = keyValuePair.first;
       int k, a;
       std::tie(k, a) = kAndA;
