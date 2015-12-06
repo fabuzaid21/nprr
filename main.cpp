@@ -109,15 +109,9 @@ vector<double> fractionalEdgeCover(const vector<relation> &hyperedges) {
 
     }
 
-    double opt = glp_get_obj_val(lp);
-
     glp_delete_prob(lp);
-
     return edgecover;
-
 }
-
-vector<relation> readRelations(char *infile);
 
 node * buildTree(const set<int> & joinAttributes, const vector<relation> & hyperedges, int k) {
   bool empty = true;
