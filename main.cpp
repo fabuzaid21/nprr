@@ -34,16 +34,17 @@ struct node {
   }
 };
 
+typedef vector<int> TUPLE;
 
 struct relation {
   set<int> attrs;
-  vector<vector<int> > tuples;
-  map<tuple<int, int>, int > location;
-  vector<set<vector<int> > > ht1;
+  vector<TUPLE> tuples;
+  map<tuple<int, int>, int> location;
+  vector<set<TUPLE> > ht1;
   // a bunch of hashtables, each one maps a key
   // (a tuple, vector of int) to a vector of tuples
   // (vector of vectors of int)
-  vector<map<vector<int>, vector<vector<int> > > > ht2;
+  vector<map<TUPLE, vector<TUPLE> > > ht2;
 };
 
 vector<double> fractionalEdgeCover(const vector<relation> &hyperedges) {
@@ -232,40 +233,42 @@ vector<tuple<int, int> > computeHashKeysPerRelation(relation &r, vector<int> &to
     }
   }
   // orderedAttrs = {4, 2, 6}
-  unsigned int first = 0;
-  for (int i = 0; i < orderedAttrs.size(); ++i) {
+  unsigned int first = (1 << orderedAttrs[0]);
+  for (int i = 1; i < orderedAttrs.size(); ++i) {
     unsigned int second = 0;
     for (int j = i; j < orderedAttrs.size(); ++j) {
       second |= (1 << orderedAttrs[j]);
+      if (second == 0) {
+        std::cout << "AHA!" << std::endl;
+      }
       tuple<int, int> key = std::make_tuple(first, second);
       toReturn.push_back(key);
     }
     first |= (1 << orderedAttrs[i]);
   }
-  tuple<int, int> key = std::make_tuple(first, 0);
-  toReturn.push_back(key);
   return toReturn;
 }
 
 
-vector< vector<int> > getProjection(relation& rel, int projectionAttrs, const vector<int>& totalOrder){
+vector<vector<int> > getProjection(relation & rel, int projectionAttrs,
+    const vector<int>& totalOrder) {
   vector< vector<int> > ret;
   const vector<vector<int> >& tuples = rel.tuples;
   vector<int> loc(totalOrder.size() + 1, 0);
-  for(int i = 0, j = 0 ;i < totalOrder.size(); i ++){
-    if(rel.attrs.count(totalOrder[i])){
-      loc[ totalOrder[i] ] = j ++;
+  for (int i = 0, j = 0 ;i < totalOrder.size(); i ++) {
+    if (rel.attrs.count(totalOrder[i])) {
+      loc[totalOrder[i]] = j++;
     }
   }
 
-  for(int i = 0; i< tuples.size(); i ++){
+  for (int i = 0; i< tuples.size(); i ++) {
     auto tuple = tuples[i];
     vector<int> t;
-    for(int j = 0; j < totalOrder.size(); j ++){
+    for (int j = 0; j < totalOrder.size(); j ++) {
       int attr = totalOrder[j];
-      int bit = 1 << attr;
-      if( (bit &  projectionAttrs) == bit){
-        t.push_back( tuple[ loc[attr] ]);
+      int bit = (1 << attr);
+      if ((bit & projectionAttrs) == bit) {
+        t.push_back(tuple[loc[attr]]);
       }
     }
     ret.push_back(t);
@@ -273,37 +276,38 @@ vector< vector<int> > getProjection(relation& rel, int projectionAttrs, const ve
   return ret;
 }
 
-int countbit(int k){
+int countBit(int k) {
   int ret = 0;
-  while(k){
+  while(k) {
     k &= (k-1);
     ret ++;
   }
   return ret;
 }
 
-void buildHashIndices(vector<tuple<int, int> > & hashKeys, relation & rel,  const vector<int> & totalOrder) {
-  map< tuple<int,int>,int  >& location = rel.location;
+void buildHashIndices(vector<tuple<int, int> > & hashKeys, relation & rel,
+    const vector<int> & totalOrder) {
+  map<tuple<int, int>, int> & location = rel.location;
 
-  for(const auto& key: hashKeys){
+  for (const auto & key: hashKeys) {
     int size = location.size();
-    location[ key ] = size;
+    location[key] = size;
 
     int K = std::get<0>(key);
     int A = std::get<1>(key);
 
-    vector<vector<int> > projectionOnKA = getProjection(rel, K | A, totalOrder);
-    vector<vector<int> > projectionOnK = getProjection(rel, K, totalOrder);
+    vector<TUPLE> projectionOnKA = getProjection(rel, K | A, totalOrder);
+    vector<TUPLE> projectionOnK = getProjection(rel, K, totalOrder);
 
-    set<vector<int> > ht1;
-    map< vector<int>, vector<vector<int> > > ht2;
+    set<TUPLE> ht1;
+    map<vector<int>, vector<TUPLE> > ht2;
 
-    for(const auto& t: projectionOnK){
+    for (const auto & t: projectionOnK) {
       ht1.insert(t);
     }
 
-    for(const auto& u: projectionOnKA){
-      vector<int> t = vector<int>(u.begin(), u.begin() + countbit(K));
+    for (const auto & u: projectionOnKA) {
+      vector<int> t = vector<int>(u.begin(), u.begin() + countBit(K));
       ht2[t].push_back(u);
     }
 
@@ -312,32 +316,22 @@ void buildHashIndices(vector<tuple<int, int> > & hashKeys, relation & rel,  cons
   }
 }
 
-void testBuildTree(const set<int> & joinAttributes, vector<relation> & hyperedges) {
-  // set<int> joinAttributes = {1, 2, 3, 4, 5, 6};
-  // relation r1;
-  // r1.attrs = {1, 2, 4, 5};
-  // relation r2;
-  // r2.attrs = {1, 3, 4, 6};
-  // relation r3;
-  // r3.attrs = {1, 2, 3};
-  // relation r4;
-  // r4.attrs = {2, 4, 6};
-  // relation r5;
-  // r5.attrs = {3, 5, 6};
-  // vector<relation> hyperedges = {r1, r2, r3, r4, r5};
-  // const int k = 5;
+void printVector(const string & label, const vector<int> & vec) {
+  std::cout << label << ": ";
+  for (const auto & elem : vec) {
+    std::cout << elem << " ";
+  }
+  std::cout << std::endl;
+}
 
+void testBuildTree(const set<int> & joinAttributes, vector<relation> & hyperedges) {
   // test buildTree
   node *root = buildTree(joinAttributes, hyperedges, hyperedges.size());
   printQueryPlanTree(root);
 
   // test computeTotalOrder
   vector<int> totalOrder = computeTotalOrder(root);
-  std::cout << "Total Order: ";
-  for (const auto &elem:totalOrder) {
-    std::cout << elem << " ";
-  }
-  std::cout << std::endl;
+  printVector("Total Order", totalOrder);
 
   // test computeHashKeysPerRelation
   vector<tuple<int, int> > hashKeys = computeHashKeysPerRelation(hyperedges[0], totalOrder);
@@ -348,9 +342,33 @@ void testBuildTree(const set<int> & joinAttributes, vector<relation> & hyperedge
     std::cout << "second: " << second << std::endl;
   }
 
+  std::cout << std::endl << "TESTING INDICES" << std::endl << std::endl;
   for (auto & rel : hyperedges) {
     vector<tuple<int, int> > hashKeys = computeHashKeysPerRelation(rel, totalOrder);
     buildHashIndices(hashKeys, rel, totalOrder);
+    for (auto const & keyValuePair : rel.location) {
+      tuple<int, int> kAndA = keyValuePair.first;
+      int k, a;
+      std::tie(k, a) = kAndA;
+      std::cout << "K: " << k << ", ";
+      std::cout << "A: " << a << std::endl;
+
+      int loc = keyValuePair.second;
+      set<vector<int> > tuplesInK = rel.ht1[loc];
+      for (auto const & tup : tuplesInK) {
+        printVector("ht1", tup);
+      }
+      map<TUPLE, vector<TUPLE> > kATuplesMap = rel.ht2[loc];
+      for (auto const & keyValuePair : kATuplesMap) {
+        TUPLE t = keyValuePair.first;
+        printVector("t", t);
+        vector<TUPLE> tuples = keyValuePair.second;
+        std::cout << "maps to: " << std::endl;
+        for (const auto & tup : tuples) {
+          printVector("h2", tup);
+        }
+      }
+    }
   }
 }
 
@@ -369,15 +387,14 @@ vector<string> split(const string & s, char delim) {
 }
 
 int countTriangles(char **argv) {
-  set<int> joinAttributes;// = {1, 2, 3, 4, 5, 6};
+  set<int> joinAttributes;
   std::ifstream infile(argv[1]);
-  // int numRelations = atoi(argv[2]);
   vector<string> splits = split(argv[2], ':');
   vector<relation> relations;
-  for (const auto& attrString : splits) {
+  for (const auto & attrString : splits) {
     relation r;
     vector<string> attrs = split(attrString, ',');
-    for (const auto& attr : attrs) {
+    for (const auto & attr : attrs) {
       int attrVal = atoi(attr.c_str());
       joinAttributes.insert(attrVal);
       r.attrs.insert(attrVal);
@@ -390,7 +407,7 @@ int countTriangles(char **argv) {
     vector<int> tuple;
     tuple.push_back(a);
     tuple.push_back(b);
-    for (auto& r : relations) {
+    for (auto & r : relations) {
       r.tuples.push_back(tuple);
     }
   }
