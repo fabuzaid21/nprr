@@ -19,7 +19,7 @@ all:
 all: $(OBJ_FILES)
 
 %.o: %.cpp
-	$(CC) -I /usr/local/include/ $(CFLAGS) -c $< -o $@
+	$(CC) -I /usr/local/include/ $(CFLAGS) $(DEBUG_FLAGS) -c $< -o $@
 
 clean:
 	rm -f $(TARGET)
