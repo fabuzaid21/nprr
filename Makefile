@@ -14,12 +14,12 @@ LINK_FLAGS = -lglpk
 # all: LINKFLAG += $(DEBUG_FLAGS) 
 
 all:
-	$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(LINK_FLAGS) $(WARNING_FLAGS) $(OBJ_FILES) -o $(TARGET)
+	$(CC) $(CFLAGS) $(DEBUG_FLAGS) -L /usr/local/lib/ $(LINK_FLAGS) $(WARNING_FLAGS) $(OBJ_FILES) -o $(TARGET)
 
 all: $(OBJ_FILES)
 
 %.o: %.cpp
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) -I /usr/local/include/ $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -f $(TARGET)
