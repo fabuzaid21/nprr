@@ -21,17 +21,23 @@ using std::stringstream;
 using std::vector;
 using std::tuple;
 
-struct node {
-  set<int> universe;
-  int label;
-  node *leftChild;
-  node *rightChild;
+#define ERROR(str) do { printf("Error: %s", (str)); } while (false);
 
-  node(const set<int> &_universe, int _label) {
-    universe = _universe;
-    label = _label;
-    leftChild = rightChild = NULL;
-  }
+struct node {
+    set<int> universe;
+    int label;
+    node *leftChild;
+    node *rightChild;
+
+    node(const set<int> &_universe, int _label) {
+        universe = _universe;
+        label = _label;
+        leftChild = rightChild = NULL;
+    }
+
+    bool isLeaf() {
+        return leftChild == NULL && rightChild == NULL;
+    }
 };
 
 typedef vector<int> TUPLE;
@@ -46,6 +52,71 @@ struct relation {
   // (vector of vectors of int)
   vector<map<TUPLE, vector<TUPLE> > > ht2;
 };
+
+set<int> intersect(set<int> &left, set<int> &right) {
+    set<int> result;
+    std::set_intersection(left.begin(), left.end(),
+                          right.begin(), right.end(),
+                          std::inserter(result, result.begin()));
+    return result;
+}
+
+bool tuplesMatch(vector<int> t1, set<int> attrs1, vector<int> t2, set<int> attrs2) {
+    auto it1 = attrs1.begin();
+    int i1 = 0;
+    auto it2 = attrs2.begin();
+    int i2 = 0;
+
+    while (it1 != attrs1.end() && it2 != attrs2.end()) {
+        if (*it1 < *it2) {
+            it1++;
+            i1++;
+        } else if (*it2 < *it1) {
+            it2++;
+            i2++;
+        } else {
+            if (t1[i1] != t2[i2]) {
+                return false;
+            }
+
+            it1++;
+            i1++;
+            it2++;
+            i2++;
+        }
+    }
+
+    return true;
+}
+
+// Assumes attrs1, attrs2 disjoint
+vector<int> mergeTuples(vector<int> t1, set<int> attrs1, vector<int> t2, set<int> attrs2) {
+    vector<int> result;
+
+    auto it1 = attrs1.begin();
+    int i1 = 0;
+    auto it2 = attrs2.begin();
+    int i2 = 0;
+
+    while (it1 != attrs1.end() && it2 != attrs2.end()) {
+        if (*it1 < *it2) {
+            result.push_back(t1[i1]);
+
+            it1++;
+            i1++;
+        } else if (*it2 < *it1) {
+            result.push_back(t2[i2]);
+
+            it2++;
+            i2++;
+        } else {
+            ERROR("Merging tuples with non-empty intersection");
+            exit(1);
+        }
+    }
+
+    return result;
+}
 
 vector<double> fractionalEdgeCover(const vector<relation> &hyperedges) {
 
@@ -318,6 +389,46 @@ void printVector(const string & label, const vector<int> & vec) {
   std::cout << std::endl;
 }
 
+vector<vector<int> > recursiveJoin(vector<relation> &rels, node &currNode, vector<double> &fractionalCover,
+                                   vector<int> parentTuple, set<int> &prevAttrs) {
+    // 1: Let U = univ(u), k = label(u)
+    set<int> &u = currNode.universe;
+
+    //2: Ret ← ∅ // Ret is the returned tuple set
+    vector<vector<int> > ret;
+
+    // 3: if u is a leaf node of T then // note that U ⊆ ei, ∀i ≤ k
+    if (currNode.isLeaf()) {
+        // Pseudocode line 4: find smallest relation <k when sectioned on parentTuple
+
+        int minSize = -1;
+
+        relation &smallest = rels[0];
+
+        for (int j = 0; j < currNode.label; j++) {
+            int count = 0;
+            for (vector<int> t : rels[j].tuples) {
+                if (tuplesMatch(t, rels[j].attrs, parentTuple, prevAttrs)) {
+                    count++;
+                }
+            }
+
+            if (minSize == -1 || count < minSize) {
+                minSize = count;
+                smallest = rels[j];
+            }
+        }
+
+        // Pseudocode lines 6-8
+        for (vector<int> t : smallest.tuples) {
+            if (tuplesMatch(t, smallest.attrs, parentTuple, prevAttrs)) {
+
+            }
+        }
+
+    }
+}
+
 void testBuildTree(const set<int> & joinAttributes, vector<relation> & hyperedges) {
   // test buildTree
   node *root = buildTree(joinAttributes, hyperedges, hyperedges.size());
@@ -335,7 +446,7 @@ void testBuildTree(const set<int> & joinAttributes, vector<relation> & hyperedge
     std::cout << "first: " << first << ", ";
     std::cout << "second: " << second << std::endl;
   }
-
+  
   std::cout << std::endl << "TESTING INDICES" << std::endl << std::endl;
   for (auto & rel : hyperedges) {
     vector<tuple<int, int> > hashKeys = computeHashKeysPerRelation(rel, totalOrder);
