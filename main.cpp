@@ -393,7 +393,7 @@ double computeRightHandSide(const TUPLE tup, relation & r,
   const int ht2Location = r.htIndexes[htIndexKey];
   map<TUPLE, vector<TUPLE> > tupleMap = r.ht2[ht2Location];
   const double numTuples = tupleMap.count(tup) ? tupleMap[tup].size() : 0.0;
-  return numTuples;
+  return log(numTuples);
 }
 
 vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<double> & fractionalCover,
