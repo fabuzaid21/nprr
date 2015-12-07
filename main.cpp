@@ -314,6 +314,14 @@ vector<TUPLE> getOrderedProjection(relation & rel, int projectionAttrs, const ve
   return ret;
 }
 
+TUPLE concatTuples(TUPLE& t, TUPLE& u) {
+    TUPLE ret(t);
+    for (int x : u) {
+        ret.push_back(u);
+    }
+    return ret;
+}
+
 int countBit(int k) {
   int ret = 0;
   while(k) {
@@ -423,7 +431,9 @@ vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<dou
     int smallestAttrs = setToBitVector(smallest.attrs) & setToBitVector(parentTupleAttrs);
     TUPLE r0t = projectTuple(parentTuple, setToBitVector(parentTupleAttrs), smallestAttrs, totalOrder);
     tuple<int,int> smallestLocKey = std::make_tuple(smallestAttrs, setToBitVector(u));
-    int minSize = smallest.ht2[smallest.htIndexes[smallestLocKey]][r0t].size();
+
+    vector<TUPLE> &smallestProjectedTuples = smallest.ht2[smallest.htIndexes[smallestLocKey]][r0t];
+    int minSize = smallestProjectedTuples.size();
 
     for (int j = 1; j < k; j++) {
       relation r = rels[j];
@@ -431,17 +441,20 @@ vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<dou
       int rAttrs = setToBitVector(r.attrs) & setToBitVector(parentTupleAttrs);
       tuple<int,int> rLocKey = std::make_tuple(smallestAttrs, setToBitVector(u));
       TUPLE rT = projectTuple(parentTuple, setToBitVector(parentTupleAttrs), rAttrs, totalOrder);
-      const int count = r.ht2[r.htIndexes[rLocKey]][rT].size();
+
+      vector<TUPLE>& projectedTuples = r.ht2[r.htIndexes[rLocKey]][rT];
+      const int count = projectedTuples.size();
 
       if (count < minSize) {
         minSize = count;
         smallRelIndex = j;
         smallest = rels[j];
+        smallestProjectedTuples = projectedTuples;
       }
     }
 
     // Pseudocode lines 6-8
-    for (TUPLE t : smallest.tuples) {
+    for (TUPLE tU : smallestProjectedTuples) {
       bool addTuple = true;
       for (int j = 0; j < k; ++j) {
         if (j == smallRelIndex) {
@@ -456,7 +469,7 @@ vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<dou
         }
       }
       if (addTuple) {
-        ret.push_back(t);
+        ret.push_back(concatTuples(parentTuple, tU));
       }
     }
     return ret;
