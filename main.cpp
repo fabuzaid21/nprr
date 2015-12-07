@@ -288,7 +288,7 @@ TUPLE projectTuple(TUPLE tup, int projectionAttrs, const vector<int>& order, con
 
 vector<int> orderToLoc(const vector<int>& order, int attrs) {
   vector<int> loc(order.size() + 1, 0);
-  for (int i = 0, j = 1; i < order.size(); i++) {
+  for (int i = 0, j = 0; i < order.size(); i++) {
     if (attrs & (1 << order[i])) {
       loc[order[i]] = j++;
     }
@@ -304,7 +304,7 @@ TUPLE projectTuple(TUPLE tup, int tupleAttrs, int projectionAttrs, const vector<
 
 vector<TUPLE> getOrderedProjection(relation & rel, int projectionAttrs, const vector<int> & order) {
   vector<vector<int> > ret;
-  const vector<vector<int> >& tuples = rel.tuples;
+  const vector<vector<int> > & tuples = rel.tuples;
   vector<int> loc = orderToLoc(order, setToBitVector(rel.attrs));
 
   for (int i = 0; i < tuples.size(); i ++) {
@@ -422,14 +422,14 @@ vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<dou
     // Pseudocode line 4: find smallest relation < k when sectioned on parentTuple
     assert(u.size() == 1);
 
-    int universeBitVector = setToBitVector(u);
+    const int universeBitVector = setToBitVector(u);
 
     // find smallest relation
     int smallRelIndex = 0;
     relation &smallest = rels[smallRelIndex];
-    int smallestAttrs = setToBitVector(smallest.attrs) & sBitVector;
-    TUPLE r0t = projectTuple(parentTuple, setToBitVector(parentTupleAttrs), smallestAttrs, totalOrder);
-    tuple<int,int> smallestLocKey = std::make_tuple(smallestAttrs, setToBitVector(u));
+    const int sAndEiBitVector = setToBitVector(smallest.attrs) & sBitVector;
+    TUPLE r0t = projectTuple(parentTuple, sBitVector, sAndEiBitVector, totalOrder);
+    tuple<int, int> smallestLocKey = std::make_tuple(sAndEiBitVector, universeBitVector);
 
     vector<TUPLE> &smallestProjectedTuples = smallest.ht2[smallest.htIndexes[smallestLocKey]][r0t];
     int minSize = smallestProjectedTuples.size();
@@ -438,7 +438,7 @@ vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<dou
       relation r = rels[j];
       vector<TUPLE> projectionOnUniverseAttrs = getOrderedProjection(smallest, universeBitVector, totalOrder);
       int rAttrs = setToBitVector(r.attrs) & setToBitVector(parentTupleAttrs);
-      tuple<int,int> rLocKey = std::make_tuple(smallestAttrs, setToBitVector(u));
+      tuple<int,int> rLocKey = std::make_tuple(sAndEiBitVector, universeBitVector);
       TUPLE rT = projectTuple(parentTuple, setToBitVector(parentTupleAttrs), rAttrs, totalOrder);
 
       vector<TUPLE>& projectedTuples = r.ht2[r.htIndexes[rLocKey]][rT];
@@ -463,7 +463,7 @@ vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<dou
         tuple<int, int> key = std::make_tuple((sBitVector & eJBitVector) | universeBitVector, 0);
         const int ht1Index = rels[j].htIndexes[key];
         set<TUPLE> & tupleSet = rels[j].ht1[ht1Index];
-        TUPLE projectedTuple = projectTuple(tU, smallestAttrs | universeBitVector , (sBitVector & eJBitVector) | universeBitVector, totalOrder);
+        TUPLE projectedTuple = projectTuple(tU, sAndEiBitVector | universeBitVector, (sBitVector & eJBitVector) | universeBitVector, totalOrder);
         if (!tupleSet.count(tU)) {
           addTuple = false;
           break;
