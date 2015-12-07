@@ -40,7 +40,12 @@ struct node {
     }
 };
 
-typedef vector<int> TUPLE;
+struct TUPLE {
+    vector<int> vals;
+    int attrSet;
+
+    TUPLE(vector<int>& v, int s) : vals(v), attrSet(s) {}
+};
 
 struct relation {
     set<int> attrs;
@@ -275,13 +280,13 @@ int setToBitVector(const set<int> & s) {
     return toReturn;
 }
 
-TUPLE projectTuple(TUPLE tup, int projectionAttrs, const vector<int>& order, const vector<int>& loc) {
+vector<int> projectVals(vector<int>& vals, int projectionAttrs, const vector<int>& order, const vector<int>& loc) {
     vector<int> t;
     for (int j = 0; j < order.size(); j++) {
         int attr = order[j];
         int bit = (1 << attr);
         if ((bit & projectionAttrs) == bit) {
-            t.push_back(tup[loc[attr]]);
+            t.push_back(vals[loc[attr]]);
         }
     }
 
@@ -299,14 +304,16 @@ vector<int> orderToLoc(const vector<int>& order, int attrs) {
     return loc;
 }
 
-TUPLE projectTuple(TUPLE tup, int tupleAttrs, int projectionAttrs, const vector<int> & order) {
-    vector<int> loc = orderToLoc(order, tupleAttrs);
-    return projectTuple(tup, projectionAttrs, order, loc);
+TUPLE projectTuple(TUPLE tup, int projectionAttrs, const vector<int> & order) {
+    vector<int> loc = orderToLoc(order, tup.attrSet);
+    vector<int> v = projectVals(tup.vals, projectionAttrs, order, loc);
+    TUPLE ret(v, projectionAttrs);
+    return ret;
 }
 
 vector<TUPLE> getOrderedProjection(relation & rel, int projectionAttrs, const vector<int> & order) {
     vector<vector<int> > ret;
-    const vector<vector<int> > & tuples = rel.tuples;
+    const vector<TUPLE> & tuples = rel.tuples;
     vector<int> loc = orderToLoc(order, setToBitVector(rel.attrs));
 
     for (int i = 0; i < tuples.size(); i ++) {
