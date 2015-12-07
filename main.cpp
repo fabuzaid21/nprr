@@ -315,11 +315,11 @@ vector<TUPLE> getOrderedProjection(relation & rel, int projectionAttrs, const ve
 }
 
 TUPLE concatTuples(TUPLE& t, TUPLE& u) {
-    TUPLE ret(t);
-    for (int x : u) {
-        ret.push_back(u);
-    }
-    return ret;
+  TUPLE ret(t);
+  for (int x : u) {
+    ret.push_back(u);
+  }
+  return ret;
 }
 
 int countBit(int k) {
@@ -372,7 +372,7 @@ void printVector(const string & label, const vector<int> & vec) {
 
 double computeLeftHandSide(const int k, const TUPLE tup, vector<relation> & rels,
     const int sBitVector, const int wBitVector, const int wMinusBitVector, const double y_e_k,
-    const vector<double> & fractionalCover) {
+    const vector<double> & fractionalCover, const vector<int> & totalOrder) {
   double sum = 0.0;
   for (int i = 0; i < k - 1; ++i) {
     relation & r = rels[i];
@@ -384,14 +384,15 @@ double computeLeftHandSide(const int k, const TUPLE tup, vector<relation> & rels
 
     const int ht2Location = r.htIndexes[htIndexKey];
     map<TUPLE, vector<TUPLE> > tupleMap = r.ht2[ht2Location];
-    const double numTuples = tupleMap.count(tup) ? tupleMap[tup].size() : 0.0;
+    TUPLE projectedTuple = projectTuple(tup, sBitVector | wBitVector, key1, totalOrder);
+    const double numTuples = tupleMap.count(projectedTuple) ? tupleMap[projectedTuple].size() : 0.0;
     sum += (fractionalCover[i] / (1 - y_e_k)) * log(numTuples);
   }
   return sum;
 }
 
-double computeRightHandSide(const TUPLE tup, relation & r,
-    const int sBitVector, const int wMinusBitVector) {
+double computeRightHandSide(const TUPLE tup, relation & r, const int sBitVector,
+    const int wBitVector, const int wMinusBitVector, const vector<int> & totalOrder) {
   set<int> eK = r.attrs;
   const int eKBitVector = setToBitVector(eK);
   const int key1 = (sBitVector & eKBitVector);
@@ -400,7 +401,8 @@ double computeRightHandSide(const TUPLE tup, relation & r,
 
   const int ht2Location = r.htIndexes[htIndexKey];
   map<TUPLE, vector<TUPLE> > tupleMap = r.ht2[ht2Location];
-  const double numTuples = tupleMap.count(tup) ? tupleMap[tup].size() : 0.0;
+  TUPLE projectedTuple = projectTuple(tup, sBitVector | wBitVector, key1, totalOrder);
+  const double numTuples = tupleMap.count(projectedTuple) ? tupleMap[projectedTuple].size() : 0.0;
   return log(numTuples);
 }
 
@@ -417,13 +419,10 @@ vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<dou
   // 3: if u is a leaf node of T then
   // note that U ⊆ ei, ∀i ≤ k
   if (currNode->isLeaf()) {
-    // Pseudocode line 4: find smallest relation <k when sectioned on parentTuple
+    // Pseudocode line 4: find smallest relation < k when sectioned on parentTuple
     assert(u.size() == 1);
 
     int universeBitVector = setToBitVector(u);
-    // for (const auto & elem : u) {
-    //   universeBitVector |= (1 << elem);
-    // }
 
     // find smallest relation
     int smallRelIndex = 0;
@@ -497,10 +496,31 @@ vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<dou
   for (const auto & tup : leftChildTuples) {
     const double y_e_k = fractionalCover.back();
     const double lhs = computeLeftHandSide(k, tup, rels, sBitVector, wBitVector,
-        wMinusBitVector, y_e_k, fractionalCover);
-    const double rhs = computeRightHandSide(tup, rels[k - 1], sBitVector, wMinusBitVector);
-    if (y_e_k < 1 && lhs < rhs) {
+        wMinusBitVector, y_e_k, fractionalCover, totalOrder);
 
+    const double rhs = computeRightHandSide(tup, rels[k - 1], sBitVector,
+        wBitVector, wMinusBitVector, totalOrder);
+    if (y_e_k < 1 && lhs < rhs) {
+      vector<double> rightChildFractionalCover;
+      for (int i = 0; i < k - 1; ++i) {
+        rightChildFractionalCover.push_back(fractionalCover[i] / (1 - y_e_k));
+      }
+      set<int> sAndW = set_union(parentTupleAttrs, w);
+      vector<TUPLE> rightChildTuples = recursiveJoin(rels, currNode->rightChild, rightChildFractionalCover, totalOrder, tup, sAndW);
+      // Pseudocode lines 23-25
+      for (const auto & tup : rightChildTuples) {
+        TUPLE tWMinus = projectTuple(tup, sBitVector | wBitVector | wMinusBitVector, wMinusBitVector, totalOrder);
+        set<int> eK = rels[k - 1].attrs;
+        const int eKBitVector = setToBitVector(eK);
+        const int key1 = (sBitVector & eKBitVector) | wMinusBitVector;
+        const int key2 = 0;
+        const tuple<int, int> htIndexKey = std::make_tuple(key1, key2);
+        const int ht1Location = rels[k - 1].htIndexes[htIndexKey];
+        set<TUPLE> tupleSet = rels[k - 1].ht1[ht1Location];
+        if (tupleSet.count(tWMinus)) {
+          ret.push_back(tup);
+        }
+      }
     } else {
 
     }
