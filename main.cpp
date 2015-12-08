@@ -64,7 +64,7 @@ struct relation {
     // a bunch of hashtables, each one maps a key
     // (a tuple, vector of int) to a vector of tuples
     // (vector of vectors of int)
-    vector<map<TUPLE, vector<TUPLE> > > ht2;
+    vector<map<TUPLE, set<TUPLE> > > ht2;
 };
 
 set<int> set_union(const set<int> & left, const set<int> & right) {
@@ -365,7 +365,7 @@ void buildHashIndices(vector<tuple<int, int> > & hashKeys, relation & rel,
         vector<TUPLE> projectionOnK = getOrderedProjection(rel, K, totalOrder);
 
         set<TUPLE> ht1;
-        map<TUPLE, vector<TUPLE> > ht2;
+        map<TUPLE, set<TUPLE> > ht2;
 
         for (const auto & t: projectionOnK) {
             ht1.insert(t);
@@ -375,7 +375,7 @@ void buildHashIndices(vector<tuple<int, int> > & hashKeys, relation & rel,
             vector<int> vals = vector<int>(u.vals.begin(), u.vals.begin() + countBit(K));
             TUPLE tup(vals, K);
 
-            ht2[tup].push_back(u);
+            ht2[tup].insert(u);
         }
 
         rel.ht1.push_back(ht1);
@@ -404,7 +404,7 @@ double computeLeftHandSide(const int k, const TUPLE tup, vector<relation> & rels
         const tuple<int, int> htIndexKey = std::make_tuple(key1, key2);
 
         const int ht2Location = r.htIndexes[htIndexKey];
-        map<TUPLE, vector<TUPLE> > & tupleMap = r.ht2[ht2Location];
+        map<TUPLE, set<TUPLE> > & tupleMap = r.ht2[ht2Location];
         TUPLE projectedTuple = projectTuple(tup, key1, totalOrder);
         const double numTuples = tupleMap.count(projectedTuple) ? tupleMap[projectedTuple].size() : 0.0;
         product *=  pow(numTuples, (fractionalCover[i] / (1 - y_e_k)));
@@ -421,7 +421,7 @@ double computeRightHandSide(const TUPLE tup, relation & r, const int sBitVector,
     const tuple<int, int> htIndexKey = std::make_tuple(key1, key2);
 
     const int ht2Location = r.htIndexes[htIndexKey];
-    map<TUPLE, vector<TUPLE> > & tupleMap = r.ht2[ht2Location];
+    map<TUPLE, set<TUPLE> > & tupleMap = r.ht2[ht2Location];
     TUPLE projectedTuple = projectTuple(tup, key1, totalOrder);
     const double numTuples = tupleMap.count(projectedTuple) ? tupleMap[projectedTuple].size() : 0.0;
     return numTuples;
@@ -452,7 +452,7 @@ vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<dou
         TUPLE r0t = projectTuple(parentTuple, sAndEiBitVector, totalOrder);
         tuple<int, int> smallestLocKey = std::make_tuple(sAndEiBitVector, universeBitVector);
 
-        vector<TUPLE> &smallestProjectedTuples = smallest.ht2[smallest.htIndexes[smallestLocKey]][r0t];
+        set<TUPLE> & smallestProjectedTuples = smallest.ht2[smallest.htIndexes[smallestLocKey]][r0t];
         int minSize = smallestProjectedTuples.size();
 
         for (int j = 1; j < k; j++) {
@@ -462,7 +462,7 @@ vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<dou
             tuple<int,int> rLocKey = std::make_tuple(sAndEiBitVector, universeBitVector);
             TUPLE rT = projectTuple(parentTuple, rAttrs, totalOrder);
 
-            vector<TUPLE>& projectedTuples = r.ht2[r.htIndexes[rLocKey]][rT];
+            set<TUPLE> & projectedTuples = r.ht2[r.htIndexes[rLocKey]][rT];
             const int count = projectedTuples.size();
 
             if (count < minSize) {
@@ -554,9 +554,9 @@ vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<dou
             const int key2 = wMinusBitVector;
             const tuple<int, int> htIndexKey = std::make_tuple(key1, key2);
             const int ht2Location = rels[k - 1].htIndexes[htIndexKey];
-            map<TUPLE, vector<TUPLE> > & tupleMap = rels[k - 1].ht2[ht2Location];
+            map<TUPLE, set<TUPLE> > & tupleMap = rels[k - 1].ht2[ht2Location];
             TUPLE leftTupProjected = projectTuple(leftTup, key1, totalOrder);
-            const vector<TUPLE> & indexedTuples = tupleMap[leftTupProjected];
+            const set<TUPLE> & indexedTuples = tupleMap[leftTupProjected];
             for (const auto & tup : indexedTuples) {
                 bool addTuple = true;
                 for (int i = 0; i < k - 1; ++i) {
@@ -631,15 +631,13 @@ int countTriangles(char **argv) {
         }
     }
     for (const auto & r : relations) {
-        for (const auto & tup : r.tuples) {
-            for (const auto & val : tup.vals) {
+        for (const auto &tup : r.tuples) {
+            for (const auto &val : tup.vals) {
                 std::cout << val << " ";
             }
             std::cout << std::endl;
         }
     }
-
-    //testBuildTree(joinAttributes, relations);
 
     node * const root = buildTree(joinAttributes, relations, relations.size());
     vector<double> fractionalCover = fractionalEdgeCover(relations);
@@ -691,11 +689,11 @@ int countTriangles(char **argv) {
             for (auto const & tup : tuplesInK) {
                 printVector("ht1", tup);
             }
-            map<TUPLE, vector<TUPLE> > kATuplesMap = rel.ht2[loc];
+            map<TUPLE, set<TUPLE> > kATuplesMap = rel.ht2[loc];
             for (auto const & keyValuePair : kATuplesMap) {
                 TUPLE t = keyValuePair.first;
                 printVector("t", t);
-                vector<TUPLE> tuples = keyValuePair.second;
+                set<TUPLE> tuples = keyValuePair.second;
                 std::cout << "maps to: " << std::endl;
                 for (const auto & tup : tuples) {
                     printVector("ht2", tup);
