@@ -114,8 +114,8 @@ vector<double> fractionalEdgeCover(const vector<relation> &hyperedges) {
         }
     }
 
-    int rowNum = V.size();
-    int colNum = hyperedges.size();
+    int rowNum = hyperedges.size();
+    int colNum = V.size();
 
     glp_prob *lp = glp_create_prob();
     glp_set_prob_name(lp, "edgecover");
@@ -655,7 +655,7 @@ int countTriangles(char **argv) {
         }
     }
     */
-    int wall1 = get_wall_time();
+    double wall1 = get_wall_time();
 
     node * const root = buildTree(joinAttributes, relations, relations.size());
 
@@ -727,12 +727,12 @@ int countTriangles(char **argv) {
         */
     }
 
-    int wall2 = get_wall_time();
+    double wall2 = get_wall_time();
 
     vector<TUPLE> results = recursiveJoin(relations, root, fractionalCover,
                                           totalOrder, emptyTuple, emptySet);
 
-    int wall3 = get_wall_time();
+    double wall3 = get_wall_time();
 
     std::cout << "Indexing time: " << wall2 - wall1 << " s" << std::endl;
     std::cout << "NPRR time: " << wall3 - wall2 << " s" << std::endl;
