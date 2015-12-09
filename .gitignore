@@ -2,3 +2,4 @@
 *.swp
 nprr
 nprr.dSYM/
+.DS_Store

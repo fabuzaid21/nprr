@@ -10,6 +10,9 @@
 #include <cmath>
 #include <cassert>
 
+#include <time.h>
+#include <sys/time.h>
+
 using std::map;
 using std::max;
 using std::min;
@@ -22,6 +25,18 @@ using std::vector;
 using std::tuple;
 
 #define ERROR(str) do { printf("Error: %s", (str)); } while (false);
+
+
+
+double get_wall_time(){
+    struct timeval time;
+    if (gettimeofday(&time,NULL)){
+        //  Handle error
+        return 0;
+    }
+    return (double)time.tv_sec + (double)time.tv_usec * .000001;
+}
+
 
 struct node {
     set<int> universe;
@@ -630,6 +645,7 @@ int countTriangles(char **argv) {
             r.tuples.push_back(t);
         }
     }
+    /*
     for (const auto & r : relations) {
         for (const auto &tup : r.tuples) {
             for (const auto &val : tup.vals) {
@@ -638,12 +654,18 @@ int countTriangles(char **argv) {
             std::cout << std::endl;
         }
     }
+    */
+    int wall1 = get_wall_time();
 
     node * const root = buildTree(joinAttributes, relations, relations.size());
+
     vector<double> fractionalCover = fractionalEdgeCover(relations);
+
     TUPLE emptyTuple(0);
     set<int> emptySet;
     vector<int> totalOrder = computeTotalOrder(root);
+
+
 
     for(auto& rel: relations){
         const set<int>& attrs = rel.attrs;
@@ -675,20 +697,22 @@ int countTriangles(char **argv) {
         vector<tuple<int, int> > hashKeys = computeHashKeysPerRelation(rel, totalOrder);
         buildHashIndices(hashKeys, rel, totalOrder);
 
-        std::cout << ">>> relation: " << std::endl;
-
+        //std::cout << ">>> relation: " << std::endl;
+        /*
         for (auto const & keyValuePair : rel.htIndexes) {
             tuple<int, int> kAndA = keyValuePair.first;
             int k, a;
             std::tie(k, a) = kAndA;
-            std::cout << "K: " << k << ", ";
-            std::cout << "A: " << a << std::endl;
+            //std::cout << "K: " << k << ", ";
+            //std::cout << "A: " << a << std::endl;
 
             int loc = keyValuePair.second;
             set<TUPLE> tuplesInK = rel.ht1[loc];
+
             for (auto const & tup : tuplesInK) {
                 printVector("ht1", tup);
             }
+
             map<TUPLE, set<TUPLE> > kATuplesMap = rel.ht2[loc];
             for (auto const & keyValuePair : kATuplesMap) {
                 TUPLE t = keyValuePair.first;
@@ -700,11 +724,20 @@ int countTriangles(char **argv) {
                 }
             }
         }
-
+        */
     }
+
+    int wall2 = get_wall_time();
 
     vector<TUPLE> results = recursiveJoin(relations, root, fractionalCover,
                                           totalOrder, emptyTuple, emptySet);
+
+    int wall3 = get_wall_time();
+
+    std::cout << "Indexing time: " << wall2 - wall1 << " s" << std::endl;
+    std::cout << "NPRR time: " << wall3 - wall2 << " s" << std::endl;
+
+
     return results.size();
 }
 
