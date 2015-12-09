@@ -3,15 +3,18 @@ triangle
 facebook 6.75979 + 33.1275 s
 gnutella 6.89936 + 5.89493 s
 wikivote 8.74489 + 51.1789 s
+condmat	 11.9753 + 10.4894 s
 
 rectangle
 
 facebook 8.73736 + 17.3985 s
 gnutella 
 wikivote 
+condmat
 
 clique
 
 facebook 
 gnutella 
 wikivote 
+condmat
