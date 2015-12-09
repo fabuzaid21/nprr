@@ -1,0 +1,17 @@
+triangle
+
+facebook 74468.876 ms
+gnutella 6386.791 ms
+wikivote 137549.101 ms
+
+rectangle
+
+facebook 532639.247 ms
+gnutella 13020.447 ms
+wikivote > 10 min
+
+clique
+
+facebook > 10 min
+gnutella 7484.502 ms
+wikivote > 10 min
