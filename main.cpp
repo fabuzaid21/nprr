@@ -317,8 +317,8 @@ vector<int> orderToLoc(const vector<int>& order, int attrs) {
 
 TUPLE projectTuple(TUPLE tup, int projectionAttrs, const vector<int> & order) {
     vector<int> loc = orderToLoc(order, tup.attrSet);
-    vector<int> v = projectVals(tup.vals, projectionAttrs, order, loc);
-    TUPLE ret(v, projectionAttrs);
+    vector<int> v = projectVals(tup.vals, projectionAttrs & tup.attrSet, order, loc);
+    TUPLE ret(v, projectionAttrs & tup.attrSet);
     return ret;
 }
 
@@ -567,7 +567,7 @@ vector<TUPLE> recursiveJoin(vector<relation> & rels, node * currNode, vector<dou
                     if (eIAndWMinusBitVector == 0) {
                         continue;
                     }
-                    const int key1 = eIAndWMinusBitVector | ((sBitVector | wBitVector) & eIBitVector);
+                    const int key1 = (eIAndWMinusBitVector | ((sBitVector | wBitVector) & eIBitVector)) & tup.attrSet;
                     const int key2 = 0;
                     const tuple<int, int> htIndexKey = std::make_tuple(key1, key2);
                     const int ht1Location = r.htIndexes[htIndexKey];
