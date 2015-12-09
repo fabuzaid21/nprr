@@ -1,0 +1,3 @@
+http://snap.stanford.edu/data/egonets-Facebook.html
+http://snap.stanford.edu/data/p2p-Gnutella30.html
+http://snap.stanford.edu/data/wiki-Vote.html
