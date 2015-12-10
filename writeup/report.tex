@@ -1,0 +1,55 @@
+\documentclass[runningheads,a4paper]{llncs}
+
+\usepackage{amssymb}
+\usepackage{graphicx} % support the \includegraphics command and options
+\usepackage{amsmath}
+\usepackage{indentfirst}
+\usepackage{graphicx}
+
+\usepackage{url}
+\urldef{\mailsa}\path|{fabuzaid,jkoppel,yil}@mit.edu|
+\newcommand{\keywords}[1]{\par\addvspace\baselineskip
+\noindent\keywordname\enspace\ignorespaces#1}
+
+\usepackage[top=2in, bottom=1.5in, left=1.5in, right=1.5in]{geometry}
+
+
+\begin{document}
+
+\mainmatter  % start of an individual contribution
+
+% first the title is needed
+\title{Implementing a Worst-Case Optimal Multi-Way Join Algorithm}
+
+\author{Firas Abuzaid, James Koppel, Yi Lu}
+
+\institute{CSAIL, MIT\\
+\mailsa}
+
+\maketitle
+
+
+\input{abstract.tex}
+
+
+\input{intro.tex}
+
+\input{theory.tex}
+
+\input{design_decisions.tex}
+
+\input{implementation.tex}
+
+\input{results.tex}
+
+\input{"postgres_integration.tex"}
+
+\input{future_work.tex}
+
+\input{conclusion.tex}
+
+
+\bibliographystyle{abbrv}
+\bibliography{cite}
+
+\end{document}
