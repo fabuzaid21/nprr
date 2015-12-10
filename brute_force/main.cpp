@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
       
       for (int k = 0; k <= nVerts; k++) {
         if (graph[j][k] && graph[i][k]) {
-          printf("Found %d %d %d\n", i,j,k);
+          //printf("Found %d %d %d\n", i,j,k);
           nTriangles++;
         }
       }
