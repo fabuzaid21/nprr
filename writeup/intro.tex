@@ -1,3 +1,13 @@
 \section{Introduction}
 
-Yi
+Efficient join processing is one of the most well-studied problems in database research. Traditional database systems are highly optimized for pair-wise join, where OLAP workloads often consists of star joins with aggregates. There is a fact table which is much larger than the dimension tables, where the fact table is horizontally partitioned and dimension tables are replicated to optimize the queries. 
+
+As many large scale data analytics engines emerge such as Spark and F1, queries are becoming more and more complex. People realized that counting different patterns of a graph is helpful to understand a complex network structure. However, the performance of evaluating a join query using a pair-wise manner could be highly suboptimal. Considering listing all triangles in a given graph, as a sequence of two pair-wise join, the size of the intermediate result could be much larger than the number of triangles. The intuition behind this is that there could be much more paths with length two than triangles in a graph. 
+
+
+A full conjunctive query, where there is no projection and every variable in the body appears in the head is useful to formulate many useful queries. For example, we can use the following query to find triangles in a graph: $Q(a, b, c) = R(a, b) \Join S(b, c) \Join T(a, c)$. Given constraints on the sizes of the input relations such as $|R| \leq n$, $|S| \leq n$, $|T| \leq n$, what is the upper bound of the  query result size $|Q|$? This question has practical importance, since a tight bound $|Q| \leq f(n)$ implies an $\Omega (f(n))$ worst-case running time for algorithms answering such queries.
+
+To achieve this goal, Ngo et al. have developed a new algorithm, called NPRR, which is provably worst-case optimal. However, it is interesting to see the performance of this algorithm for average case. We start by introducing the theory behind the algorithm and an description of implementation. In experiments on different types of graphs, we find that NPRR can always answer queries faster using a traditional database engine, e.g., PostgreSQL. 
+ 
+ 
+The paper is organized as follows. In Section 2 we review the theory of worst-case optimal join algorithm. Section 3 presents different tradeoffs and design decisions we make during implementation. We give a detailed description of our implementation of the algorithm in Section 4 and show the results in Section 5. Section 6 depicts the possible Postgres Integration. Some interesting future work are listed in Section 7 and we conclude the paper in Section 8.

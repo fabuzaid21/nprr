@@ -1,3 +1,32 @@
 \section{Results}
 
-Yi
+We now evaluate the performance of NPRR, PostgreSQL and an in-memory triangle counting baseline. We release all the source codes of the algorithms used in our evaluation in \url{https://github.com/fabuzaid21/nprr}.
+
+
+\textbf{Datasets.} We used four large real-world datasets, which are from four different domains as shown in Table~\ref{datasets}. Facebook consists of 'circles' (or 'friends lists') from Facebook. Gnutella is a sequence of snapshots of the Gnutella peer-to-peer file sharing network from August 2002. Wikivote consists of votes deciding who is going to  be promoted as adminship. Condmat (Condense Matter Physics) collaboration network covers scientific collaborations between authors papers submitted to Condense Matter category. 
+
+
+\begin{table}[!h]
+\centering
+
+\begin{tabular}{|l|l|l|}
+\hline
+Data & $|V|$ & $|E|$ \\
+\hline
+facebook & 4039 & 88234  \\
+\hline
+gnutella & 36682 & 88328 \\
+\hline
+wikivote & 7115 & 103689 \\
+\hline
+condmat & 23133 & 93479 \\
+\hline
+\end{tabular}
+\caption{Datasets}
+\label{datasets}
+\end{table}
+
+
+
+\textbf{Experimental settings.} We ran our experiments on a machine with a 2.4GHz Intel(R) Core(R) i5-4258U CPU and 8 GB DDR3-1,6000 RAM, running 64-bit MacOSX 10.11.2. NPRR was compiled with clang-700.1.81(Apple LLVM version 7.0.2). The optimization flag O2 option was enabled. PostgreSQL 9.4.5 was used during evaluation. 
+

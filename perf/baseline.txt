@@ -4,3 +4,4 @@ facebook 1.115566 s
 gnutella 0.187676 s
 wikivote 1.972001 s
 condmat	 1.016430 s
+k1000 207.336853 s
