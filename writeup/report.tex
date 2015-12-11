@@ -4,7 +4,16 @@
 \usepackage{graphicx} % support the \includegraphics command and options
 \usepackage{amsmath}
 \usepackage{indentfirst}
-\usepackage{graphicx}
+
+\usepackage{fancyhdr} % Required for custom headers
+\usepackage{lastpage} % Required to determine the last page for the footer
+\usepackage{extramarks} % Required for headers and footers
+\usepackage[usenames,dvipsnames]{color} % Required for custom colors
+\usepackage{graphicx} % Required to insert images
+\usepackage{listings} % Required for insertion of code
+\usepackage{courier} % Required for the courier font
+\usepackage{lipsum} % Used for inserting dummy 'Lorem ipsum' text into the template
+
 
 \usepackage{url}
 \urldef{\mailsa}\path|{fabuzaid,jkoppel,yil}@mit.edu|
@@ -12,6 +21,32 @@
 \noindent\keywordname\enspace\ignorespaces#1}
 
 \usepackage[top=2in, bottom=1.5in, left=1.5in, right=1.5in]{geometry}
+
+
+\lstset{ %
+language=C++,                   % choose the language of the code
+basicstyle=\ttfamily\small,
+%basicstyle=\footnotesize,       % the size of the fonts that are used for the code
+numbers=left,                   % where to put the line-numbers
+numberstyle=\footnotesize,      % the size of the fonts that are used for the line-numbers
+stepnumber=0,                   % the step between two line-numbers. If it is 1 each line will be numbered
+numbersep=5pt,                  % how far the line-numbers are from the code
+backgroundcolor=\color{white},  % choose the background color. You must add \usepackage{color}
+commentstyle=\color{Aquamarine},
+keywordstyle=\color{OrangeRed},
+%basicstyle=\ttfamily\scriptsize,
+showspaces=false,               % show spaces adding particular underscores
+showstringspaces=false,         % underline spaces within strings
+showtabs=false,                 % show tabs within strings adding particular underscores
+%frame=single,           % adds a frame around the code
+tabsize=2,          % sets default tabsize to 2 spaces
+captionpos=b,           % sets the caption-position to bottom
+breaklines=true,        % sets automatic line breaking
+breakatwhitespace=false,    % sets if automatic breaks should only happen at whitespace
+escapeinside={\%*}{*)},       % if you want to add a comment within your code
+moredelim=**[is][\color{black}]{@}{@},
+}
+
 
 
 \begin{document}
@@ -49,7 +84,10 @@
 \input{conclusion.tex}
 
 
+
 \bibliographystyle{abbrv}
 \bibliography{cite}
+
+\input{appendix.tex}
 
 \end{document}
