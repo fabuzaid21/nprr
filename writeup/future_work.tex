@@ -90,3 +90,14 @@ use this to replace all existing paths with one representing an NPRR
 join. Properly considering trees that include NPRR joins alongside
 traditional pairwise joins would unfortunately require the
 implementation of a new search algorithm.
+
+\subsubsection{Integrating into the Query Executor}
+
+The NPRR join requires more substantial preprocessing than other join,
+involving the creation of quadratically many hash tables. While Postgres has built-in infrastructure for creating hash indices,
+the existing hash index support is hardcoded to only index an entire
+table, and to only work on base relations. We would thus need to
+implement the indexing ourselves, including handling the buffer
+management policies. Joins in Postgres are given great leeway to manage their internal
+state, so this issue is less prohibitive than with the query
+optimizer. Proper index management would still nonetheless be very difficult.
