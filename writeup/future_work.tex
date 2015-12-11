@@ -16,7 +16,7 @@ algorithm would be an implementation into an RDBMS such as Postgres.
 \subsection{Integration into Postgres}
 
 We conducted extensive study into the feasibility of integrating the
-NPRR join into Postgres. 
+NPRR join into Postgres.
 
 The complexity of adding new types of joins to Postgres has been
 greatly reduced by the addition of Custom Scan Providers
@@ -101,3 +101,6 @@ implement the indexing ourselves, including handling the buffer
 management policies. Joins in Postgres are given great leeway to manage their internal
 state, so this issue is less prohibitive than with the query
 optimizer. Proper index management would still nonetheless be very difficult.
+
+\subsection{Distributed NPRR in Spark}
+We also implemented a basic implementation of NPRR in Spark which computes the join across a distributed cluster of nodes. This raises an interesting question: do the worst-case optimality guarantees of NPRR translate to the distributed setting? Moreover, what does it mean for a join algorithm to be worst-case optimal in the distributed setting? This is a future area of research that could impact large-scale data processing in cluster computing environments and is certainly worth pursuing.

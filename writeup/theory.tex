@@ -1,10 +1,10 @@
 \section{Theory}
 
-We briefly summarize the theoretical underpinnings of the NPRR algorithm to provide further understanding and underscore our motivation for studying this algorithm. A detailed survey of this algorithm (and ts more general version \texttt{Generic Join}) can be found in \cite{ngo2014skew} and \cite{ngo2012worst}.
+We briefly summarize the theoretical underpinnings of the NPRR algorithm to provide further understanding and underscore our motivation for studying this algorithm. A detailed survey of this algorithm (and its more general version, known as Generic Join) can be found in \cite{ngo2014skew} and \cite{ngo2012worst}.
 
 Traditional mult-way join queries (join queries that involve $n$ relations, where $n > 2$) are evaluated by using a cost-based estimation model to determine the best pair-wise join plan \cite{shapiro1986join}. This, however, is provably suboptimal in the worst-case; to see this, consider the triangle query:
 \begin{align*}
-Q = R(A, B) \bowtie S(B, C) \bowtie T(A, C)  
+Q = R(A, B) \bowtie S(B, C) \bowtie T(A, C)
 \end{align*}
 
 Without loss of generality, suppose this query was executed using the pair-wise join plan $(R \bowtie S) \bowtie T$. If $|R| = |S| = N$, then the intermediate relation $P = R \bowtie S$ will have cardinality $|P| = O(N^2)$ in the worst case. However, the size of the intermediate relation does not provide a lower bound for the size of the final output. If $|T| = N$ as well, then the subsequent join $P \bowtie T$ may, in the best case, generate a final output of $N^2$ tuples. However, in the worst case, $P \bowtie T$ may only generate $O(N)$ tuples, or even no tuples at all.

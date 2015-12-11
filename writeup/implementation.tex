@@ -1,1 +1,16 @@
 \section{Implementation}
+
+We implemented two versions of NPRR -- a single-node, single-threaded implementation in C++, and a distributed implementation in Spark. For the sake of brevity, we will only discuss the former in this paper; the Spark implementation can be found at \url{https://github.com/fabuzaid21/distributed-generic-join}.
+
+To evaluate the NPRR algorithm efficiently, we first build a query tree plan, following Algorithm 3 from \cite{ngo2012worst}. This query tree represents the recursive path we take during the execution of the algorithm.
+
+Next, we construct a family of indexes to efficiently compute the selection predicates, projections, and intersections. For each relation, we examine the total order for the join along the relations of that attribute and compute a series of keys that we will use in the evaluation of the join. For example, if relation $R(A_2, A_4, A_6)$ was part of our join query, and the total order we computed is $U = (A_1, A_4, A_2, A_5, A_6, A_3)$, then we would compute the following keys: $[(),(A_4)], [(),(A_4, A_2)], [(),(A_4, A_2, A_6)], [(A_4),(A_2)]$,\\
+$[(A_4),(A_2, A_6)]$,$[(A_4, A_2),(A_6)],$ and $[(A_4, A_2, A_6),()]$. 
+Once we compute the keys $K = (k_1, k_2)$ for the relations $R$, we then construct two indexes for each key-relation pair:
+
+\begin{enumerate}
+\item A hash set that indicates whether a tuple $t \in \pi_{k_1 \cup k_2} R_e$. 
+\item A hash map that maps a tuple $t$ with attributes in $k_1$ to values $v$ with attributes $k_2$ in $R_e$. This hash map lets us compute $\pi_{k_2} (R_e \ltimes t)$.
+\end{enumerate}
+
+To build these indexes efficiently, we modeled attributes as bitvectors in C++. Each relation had an array of sets and hash maps; we computed an index into the array using the key pair $(k_1, k_2)$. While the overhead of constructing these indexes is substantial, it would be practically impossible to acheive any sort of efficiency without them.
